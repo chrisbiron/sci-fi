@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Science Fiction</title>
+  <link rel="preload" href="./fonts/Rhymes Text Medium.woff2" as="font" type="font/woff2" crossorigin>
+  <style>
+    @font-face {
+      font-family: 'Rhymes Text';
+      src: url('./fonts/Rhymes Text Medium.woff2') format('woff2'),
+           url('./fonts/Rhymes Text Medium.woff') format('woff');
+      font-weight: 500;
+      font-style: normal;
+      font-display: block;
+    }
+    @font-face {
+      font-family: 'Untitled Sans';
+      src: local('UntitledSans-Regular'), local('Untitled Sans Regular'), local('Untitled Sans');
+      font-weight: 400;
+      font-style: normal;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --color-bg: #ffffff;
+      --color-text: #0a0a0a;
+      --color-logo: #0a0a0a;
+      --color-panel-bg: rgba(255,255,255,0.96);
+      --color-panel-border: #e0e0e0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+    }
+
+    body {
+      background: var(--color-bg);
+      color: var(--color-text);
+      font-family: 'Untitled Sans', sans-serif;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ── Logo ── */
+    .logo {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      font-size: 20px;
+      letter-spacing: 2px;
+      line-height: 1;
+      color: var(--color-logo);
+      user-select: none;
+    }
+
+    /* ── Slides ── */
+    .slides {
+      width: 100%;
+      height: 100vh;
+      overflow-y: scroll;
+      scroll-snap-type: y mandatory;
+      scrollbar-width: none;
+    }
+
+    .slides::-webkit-scrollbar { display: none; }
+
+    .slide {
+      height: 100vh;
+      scroll-snap-align: start;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 120px;
+    }
+
+    .slide-text {
+      font-size: 32px;
+      line-height: 1.18;
+      letter-spacing: -0.01em;
+      text-align: center;
+      max-width: 780px;
+      font-weight: 400;
+      opacity: 0;
+    }
+
+    .slide-text[data-built] {
+      opacity: 1;
+    }
+
+    /* "Science Fiction®" — first two words of slide 0 */
+    .slide[data-index="0"] .slide-text .word:nth-child(-n+2) {
+      font-family: 'Rhymes Text', serif;
+      font-weight: 500;
+    }
+
+    .slide-text .word {
+      display: inline-block;
+      white-space: pre;
+      opacity: 0;
+    }
+
+    .slide-text sup {
+      font-size: 0.55em;
+      vertical-align: super;
+      line-height: 0;
+    }
+
+    /* Effect: fade */
+    @keyframes word-fade {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    /* Effect: slide-up */
+    @keyframes word-slide-up {
+      from { opacity: 0; transform: translateY(var(--translate-amount, 24px)); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Effect: slide-down */
+    @keyframes word-slide-down {
+      from { opacity: 0; transform: translateY(calc(var(--translate-amount, 24px) * -1)); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Effect: blur */
+    @keyframes word-blur {
+      from { opacity: 0; filter: blur(var(--blur-amount, 8px)); }
+      to   { opacity: 1; filter: blur(0); }
+    }
+
+    /* Effect: blur-up */
+    @keyframes word-blur-up {
+      from { opacity: 0; filter: blur(var(--blur-amount, 8px)); transform: translateY(var(--translate-amount, 16px)); }
+      to   { opacity: 1; filter: blur(0); transform: translateY(0); }
+    }
+
+    /* Effect: scale */
+    @keyframes word-scale {
+      from { opacity: 0; transform: scale(var(--scale-from, 0.75)); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+
+    /* Effect: skew */
+    @keyframes word-skew {
+      from { opacity: 0; transform: translateY(var(--translate-amount, 20px)) skewY(8deg); }
+      to   { opacity: 1; transform: translateY(0) skewY(0deg); }
+    }
+
+    .slide-text.animating .word {
+      opacity: 1;
+      animation-fill-mode: both;
+      animation-timing-function: var(--easing, cubic-bezier(0.16, 1, 0.3, 1));
+      animation-duration: var(--duration, 600ms);
+    }
+
+    .slide-text[data-effect="fade"].animating         .word { animation-name: word-fade; }
+    .slide-text[data-effect="slide-up"].animating     .word { animation-name: word-slide-up; }
+    .slide-text[data-effect="slide-down"].animating   .word { animation-name: word-slide-down; }
+    .slide-text[data-effect="blur"].animating         .word { animation-name: word-blur; }
+    .slide-text[data-effect="blur-up"].animating      .word { animation-name: word-blur-up; }
+    .slide-text[data-effect="scale"].animating        .word { animation-name: word-scale; }
+    .slide-text[data-effect="skew"].animating         .word { animation-name: word-skew; }
+    .slide-text[data-effect="blob"].animating         .word { animation-name: word-blob; }
+
+    /* Effect: blob — phase 1: opacity 0→1 via CSS; phase 2: stroke+blur resolved by JS after animationend */
+    @keyframes word-blob {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+
+    /* ── Dev Controls Panel ── */
+    #dev-panel {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--color-panel-bg);
+      border: 1px solid var(--color-panel-border);
+      border-bottom: none;
+      border-radius: 12px 12px 0 0;
+      padding: 14px 20px 16px;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      color: #444;
+      box-shadow: 0 -4px 24px rgba(0,0,0,0.07);
+      white-space: nowrap;
+    }
+
+    #dev-panel label {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      color: #888;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    #dev-panel input[type="range"] {
+      width: 100px;
+      cursor: pointer;
+      accent-color: #0a0a0a;
+    }
+
+    #dev-panel select,
+    #dev-panel input[type="text"] {
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 3px 7px;
+      font-size: 11px;
+      font-family: inherit;
+      color: #222;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    #dev-panel .value-display {
+      font-size: 11px;
+      color: #333;
+      font-variant-numeric: tabular-nums;
+      min-width: 36px;
+    }
+
+    #dev-panel .sep {
+      width: 1px;
+      height: 28px;
+      background: #e8e8e8;
+    }
+
+    #replay-btn {
+      background: #0a0a0a;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 5px 12px;
+      font-size: 11px;
+      font-family: inherit;
+      cursor: pointer;
+      letter-spacing: 0.03em;
+    }
+
+    #replay-btn:hover, #pause-btn:hover { background: #333; }
+
+    #pause-btn {
+      background: #0a0a0a;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 5px 12px;
+      font-size: 11px;
+      font-family: inherit;
+      cursor: pointer;
+      letter-spacing: 0.03em;
+    }
+
+    .panel-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #aaa;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="logo">
+    <svg width="32" height="17" viewBox="0 0 32 17" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M22.2209 12.2954C22.5875 13.2574 22.75 14.4781 22.75 16H25.25C25.25 14.4782 25.4128 13.2576 25.7793 12.2957C26.7187 12.7167 27.6967 13.4647 28.7727 14.5408L30.5405 12.7729C29.4645 11.6969 28.7165 10.7189 28.2954 9.77954C29.2574 9.41292 30.478 9.25 32 9.25V6.75C30.4781 6.75 29.2574 6.58752 28.2954 6.22095C28.7164 5.28147 29.4643 4.30325 30.5405 3.22705L28.7727 1.45923C27.6966 2.53531 26.7187 3.28354 25.7793 3.70459C25.4127 2.74258 25.25 1.52196 25.25 0L22.75 2.18557e-07C22.75 1.52203 22.5876 2.7428 22.2209 3.70483C21.2814 3.28384 20.3031 2.53557 19.2268 1.45923L17.459 3.22705C18.5352 4.30331 19.2836 5.28142 19.7046 6.22095C18.7426 6.58752 17.5219 6.75 16 6.75C11 6.75 9.25 5 9.25 2.41602e-06L6.75 2.63457e-06C6.75 5 5 6.75 0 6.75L2.18557e-07 9.25C5 9.25 6.75 11 6.75 16L9.25 16C9.25 11 11 9.25 16 9.25C17.5218 9.25 18.7424 9.41276 19.7043 9.7793C19.2833 10.7187 18.5351 11.6968 17.459 12.7729L19.2268 14.5408C20.3031 13.4645 21.2814 12.7164 22.2209 12.2954Z" fill="currentColor"/>
+    </svg>
+  </div>
+
+  <div class="slides" id="slides">
+
+    <section class="slide" data-index="0">
+      <p class="slide-text" data-effect="blur-up">
+        Science Fiction® is a software company turning frontier technology into iconic products.
+      </p>
+    </section>
+
+    <section class="slide" data-index="1">
+      <p class="slide-text" data-effect="blur-up">
+        A small team of designers &amp; technologists who combine art, science, and internet culture to make the impossible inevitable.
+      </p>
+    </section>
+
+  </div>
+
+  <!-- Dev Controls -->
+  <div id="dev-panel">
+    <span class="panel-label">Anim</span>
+
+    <label>
+      Effect
+      <select id="ctrl-effect">
+        <option value="blur-up" selected>Blur + Slide Up</option>
+        <option value="blur">Blur</option>
+        <option value="slide-up">Slide Up</option>
+        <option value="blob">Blob Text</option>
+      </select>
+    </label>
+
+    <div class="sep"></div>
+
+    <label>
+      Duration
+      <input type="range" id="ctrl-duration" min="80" max="1200" value="540" step="10">
+    </label>
+    <span class="value-display" id="val-duration">540ms</span>
+
+    <div class="sep"></div>
+
+    <label>
+      Stagger
+      <input type="range" id="ctrl-stagger" min="0" max="200" value="100" step="5">
+    </label>
+    <span class="value-display" id="val-stagger">100ms</span>
+
+    <div class="sep"></div>
+
+    <label>
+      , Pause
+      <input type="range" id="ctrl-comma-pause" min="0" max="600" value="490" step="10">
+    </label>
+    <span class="value-display" id="val-comma-pause">490ms</span>
+
+    <div class="sep"></div>
+
+    <label>
+      Easing
+      <select id="ctrl-easing">
+        <option value="cubic-bezier(0.16, 1, 0.3, 1)" selected>Expo Out</option>
+        <option value="cubic-bezier(0.34, 1.56, 0.64, 1)">Spring</option>
+        <option value="cubic-bezier(0.25, 0.1, 0.25, 1)">Ease</option>
+        <option value="cubic-bezier(0, 0, 0.2, 1)">Ease Out</option>
+        <option value="cubic-bezier(0.4, 0, 1, 1)">Ease In</option>
+        <option value="linear">Linear</option>
+        <option value="custom">Custom…</option>
+      </select>
+    </label>
+
+    <input type="text" id="ctrl-custom-easing" placeholder="cubic-bezier(…)" style="display:none; width:160px;">
+
+    <span class="ctrl-group" data-for="blur blur-up blob" style="display:contents">
+      <div class="sep"></div>
+      <label>
+        Blur
+        <input type="range" id="ctrl-blur" min="0" max="32" value="12" step="1">
+      </label>
+      <span class="value-display" id="val-blur">12px</span>
+    </span>
+
+    <span class="ctrl-group" data-for="slide-up slide-down blur-up skew" style="display:contents">
+      <div class="sep"></div>
+      <label>
+        Translate Y
+        <input type="range" id="ctrl-translate" min="0" max="80" value="12" step="2">
+      </label>
+      <span class="value-display" id="val-translate">12px</span>
+    </span>
+
+    <span class="ctrl-group" data-for="scale" style="display:contents">
+      <div class="sep"></div>
+      <label>
+        Scale From
+        <input type="range" id="ctrl-scale-from" min="0" max="1.5" value="0.75" step="0.05">
+      </label>
+      <span class="value-display" id="val-scale-from">0.75</span>
+    </span>
+
+    <span class="ctrl-group" data-for="blob" style="display:contents">
+      <div class="sep"></div>
+      <label>
+        Stroke
+        <input type="range" id="ctrl-stroke" min="0" max="20" value="10" step="1">
+      </label>
+      <span class="value-display" id="val-stroke">10px</span>
+    </span>
+
+    <div class="sep"></div>
+
+    <button id="pause-btn">⏸ Pause</button>
+    <button id="replay-btn">↺ Replay</button>
+  </div>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    const slidesContainer = document.getElementById('slides');
+    let currentSlide = 0;
+
+    // ── Config ──
+    const config = {
+      effect: 'blur-up',
+      duration: 540,
+      stagger: 100,
+      pauseAfterComma: 490,
+      easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+      blur: 12,
+      translate: 12,
+      strokeWidth: 10,
+      scaleFrom: 0.75,
+    };
+
+    const effectDefaults = {
+      blob:     { blur: 3  },
+      'blur-up':{ blur: 12 },
+      blur:     { blur: 12 },
+    };
+
+    function updatePanelForEffect(effect) {
+      document.querySelectorAll('#dev-panel .ctrl-group').forEach(group => {
+        const shown = group.dataset.for.split(' ').includes(effect);
+        group.style.display = shown ? 'contents' : 'none';
+      });
+
+      // Apply per-effect defaults for sliders
+      const defaults = effectDefaults[effect] || {};
+      if ('blur' in defaults) {
+        config.blur = defaults.blur;
+        document.getElementById('ctrl-blur').value = defaults.blur;
+        document.getElementById('val-blur').textContent = defaults.blur + 'px';
+      }
+    }
+
+    // ── Split text into word spans ──
+    function buildWords(el) {
+      if (el.dataset.built) return;
+      el.dataset.built = '1';
+
+      const raw = el.innerHTML
+        .replace(/&amp;/g, '&')
+        .replace(/&nbsp;/g, '\u00a0')
+        .replace(/®/g, '<sup>®</sup>')
+        .trim();
+
+      const tokens = raw.split(/(?<= )/);
+      el.innerHTML = tokens.map(token => {
+        const word = token.trimEnd();
+        const space = token.slice(word.length);
+        return `<span class="word">${word}</span>${space ? space : ''}`;
+      }).join('');
+    }
+
+    // ── Apply CSS custom props ──
+    function applyConfig(el) {
+      el.style.setProperty('--duration', config.duration + 'ms');
+      el.style.setProperty('--easing', config.easing);
+      el.style.setProperty('--blur-amount', config.blur + 'px');
+      el.style.setProperty('--translate-amount', config.translate + 'px');
+      el.style.setProperty('--stroke-width', config.strokeWidth + 'px');
+      el.style.setProperty('--scale-from', config.scaleFrom);
+      el.dataset.effect = config.effect;
+    }
+
+    // ── Easing ──
+    function expoOut(t) {
+      return t >= 1 ? 1 : 1 - Math.pow(2, -10 * t);
+    }
+
+    // ── JS blob resolve: after each word fades in, animate its stroke+blur to zero ──
+    // Single shared RAF tick for all resolving words; supports pause/resume.
+    function animateBlobStrokes(words, duration, strokeWidth, blurAmount) {
+      let rafId = null;
+      let pausedAt = null;
+      let cancelled = false;
+      const resolveStarts = {}; // index → startTime
+
+      // Set initial inline state (words are still opacity:0 so no visible flash)
+      words.forEach(w => {
+        w.style.webkitTextStrokeWidth = strokeWidth + 'px';
+        w.style.filter = `blur(${blurAmount}px) contrast(5)`;
+      });
+
+      function tick(now) {
+        let anyActive = false;
+        words.forEach((w, i) => {
+          if (!(i in resolveStarts)) return;
+          const t = Math.min((now - resolveStarts[i]) / duration, 1);
+          const e = expoOut(t);
+          w.style.webkitTextStrokeWidth = (strokeWidth * (1 - e)).toFixed(3) + 'px';
+          w.style.filter = `blur(${(blurAmount * (1 - e)).toFixed(3)}px) contrast(${(1 + 4 * (1 - e)).toFixed(3)})`;
+          if (t < 1) { anyActive = true; }
+          else { w.style.filter = ''; w.style.webkitTextStrokeWidth = '0px'; delete resolveStarts[i]; }
+        });
+        rafId = anyActive ? requestAnimationFrame(tick) : null;
+      }
+
+      // When each word's opacity fade ends, start its blob resolve
+      words.forEach((w, i) => {
+        w.addEventListener('animationend', function onEnd() {
+          w.removeEventListener('animationend', onEnd);
+          if (cancelled) return;
+          resolveStarts[i] = performance.now();
+          if (!rafId) rafId = requestAnimationFrame(tick);
+        });
+      });
+
+      return {
+        pause() {
+          if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+          pausedAt = performance.now();
+        },
+        resume() {
+          if (pausedAt !== null) {
+            const offset = performance.now() - pausedAt;
+            for (const i in resolveStarts) resolveStarts[i] += offset;
+            pausedAt = null;
+            if (Object.keys(resolveStarts).length && !rafId) rafId = requestAnimationFrame(tick);
+          }
+        },
+        cancel() {
+          cancelled = true;
+          if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+          words.forEach(w => { w.style.webkitTextStrokeWidth = ''; w.style.filter = ''; });
+        }
+      };
+    }
+
+    let blobController = null;
+
+    // ── Animate words in ──
+    function animateIn(el) {
+      buildWords(el);
+      applyConfig(el);
+
+      // Cancel any running blob animation and clean up its inline styles
+      blobController?.cancel();
+      blobController = null;
+
+      el.classList.remove('animating');
+      void el.offsetWidth;
+
+      let cumDelay = 0;
+      el.querySelectorAll('.word').forEach((w) => {
+        w.style.animationDelay = cumDelay + 'ms';
+        cumDelay += config.stagger;
+        if (w.textContent.trimEnd().endsWith(',')) cumDelay += config.pauseAfterComma;
+      });
+
+      requestAnimationFrame(() => {
+        el.classList.add('animating');
+        if (config.effect === 'blob') {
+          blobController = animateBlobStrokes(
+            Array.from(el.querySelectorAll('.word')),
+            config.duration, config.strokeWidth, config.blur
+          );
+        }
+      });
+    }
+
+    // ── IntersectionObserver — animate in on enter, reset on exit ──
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        const textEl = entry.target.querySelector('.slide-text');
+        if (entry.intersectionRatio >= 0.6) {
+          currentSlide = slides.indexOf(entry.target);
+          animateIn(textEl);
+        } else if (entry.intersectionRatio < 0.1) {
+          textEl.classList.remove('animating');
+        }
+      });
+    }, { root: slidesContainer, threshold: [0, 0.1, 0.6] });
+
+    slides.forEach(slide => observer.observe(slide));
+
+    // ── Click/tap — advance to next slide (ignore clicks on dev panel) ──
+    slidesContainer.addEventListener('click', (e) => {
+      if (e.target.closest('#dev-panel')) return;
+      const next = slides[Math.min(currentSlide + 1, slides.length - 1)];
+      next.scrollIntoView({ behavior: 'smooth' });
+    });
+
+    // ── Keyboard nav — scroll the container ──
+    document.addEventListener('keydown', e => {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+        const next = slides[Math.min(currentSlide + 1, slides.length - 1)];
+        next.scrollIntoView({ behavior: 'smooth' });
+      } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+        const prev = slides[Math.max(currentSlide - 1, 0)];
+        prev.scrollIntoView({ behavior: 'smooth' });
+      }
+    });
+
+    // ── Controls ──
+    function bindRange(id, valId, key, unit) {
+      const input = document.getElementById(id);
+      const display = document.getElementById(valId);
+      input.addEventListener('input', () => {
+        config[key] = parseFloat(input.value);
+        display.textContent = input.value + unit;
+      });
+    }
+
+    bindRange('ctrl-duration', 'val-duration', 'duration', 'ms');
+    bindRange('ctrl-stagger', 'val-stagger', 'stagger', 'ms');
+    bindRange('ctrl-comma-pause', 'val-comma-pause', 'pauseAfterComma', 'ms');
+    bindRange('ctrl-blur', 'val-blur', 'blur', 'px');
+    bindRange('ctrl-translate', 'val-translate', 'translate', 'px');
+    bindRange('ctrl-stroke', 'val-stroke', 'strokeWidth', 'px');
+    bindRange('ctrl-scale-from', 'val-scale-from', 'scaleFrom', '');
+
+    document.getElementById('ctrl-effect').addEventListener('change', e => {
+      config.effect = e.target.value;
+      updatePanelForEffect(e.target.value);
+    });
+
+    updatePanelForEffect(config.effect);
+
+    const easingSelect = document.getElementById('ctrl-easing');
+    const customEasingInput = document.getElementById('ctrl-custom-easing');
+
+    easingSelect.addEventListener('change', e => {
+      if (e.target.value === 'custom') {
+        customEasingInput.style.display = '';
+        customEasingInput.focus();
+      } else {
+        customEasingInput.style.display = 'none';
+        config.easing = e.target.value;
+      }
+    });
+
+    customEasingInput.addEventListener('input', e => {
+      config.easing = e.target.value;
+    });
+
+    const pauseBtn = document.getElementById('pause-btn');
+    let paused = false;
+
+    pauseBtn.addEventListener('click', () => {
+      paused = !paused;
+      const words = slides[currentSlide].querySelectorAll('.slide-text .word');
+      words.forEach(w => w.style.animationPlayState = paused ? 'paused' : 'running');
+      if (paused) blobController?.pause();
+      else blobController?.resume();
+      pauseBtn.textContent = paused ? '▶ Play' : '⏸ Pause';
+    });
+
+    document.getElementById('replay-btn').addEventListener('click', () => {
+      paused = false;
+      pauseBtn.textContent = '⏸ Pause';
+      animateIn(slides[currentSlide].querySelector('.slide-text'));
+    });
+  </script>
+</body>
+</html>
