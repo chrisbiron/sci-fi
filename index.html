@@ -632,6 +632,7 @@
     document.getElementById('ctrl-effect').addEventListener('change', e => {
       config.effect = e.target.value;
       updatePanelForEffect(e.target.value);
+      animateIn(slides[currentSlide].querySelector('.slide-text'));
     });
 
     updatePanelForEffect(config.effect);
