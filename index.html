@@ -188,7 +188,7 @@
     .slide-text[data-effect="slide-up"].animating     .word { animation-name: word-slide-up; }
     .slide-text[data-effect="slide-down"].animating   .word { animation-name: word-slide-down; }
     .slide-text[data-effect="blur"].animating         .word { animation-name: word-blur; }
-    .slide-text[data-effect="stretch-y"].animating      .word { animation-name: word-blur-up; }
+    .slide-text[data-effect="hue-stretch-y"].animating      .word { animation-name: word-blur-up; }
     .slide-text[data-effect="scale"].animating        .word { animation-name: word-scale; }
     .slide-text[data-effect="skew"].animating         .word { animation-name: word-skew; }
     .slide-text[data-effect="blob"].animating         .word { animation-name: word-blob; }
@@ -211,47 +211,137 @@
       animation-name: word-stretch-y;
     }
 
-
-    /* ── Dev Controls Panel ── */
-    #dev-panel {
-      position: fixed;
-      bottom: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      background: var(--color-panel-bg);
-      border: 1px solid var(--color-panel-border);
-      border-bottom: none;
-      border-radius: 12px 12px 0 0;
-      padding: 14px 20px 16px;
-      z-index: 100;
-      display: flex;
-      align-items: center;
-      gap: 20px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      font-size: 11px;
-      color: #444;
-      box-shadow: 0 -4px 24px rgba(0,0,0,0.07);
-      white-space: nowrap;
+    /* Effect: hue-stretch-y — same stretch but color stays constant; hue-rotate spins across full animation */
+    @keyframes word-hue-stretch-y {
+      from { opacity: 0; transform: scaleY(var(--stretch-amount, 3)); filter: blur(var(--stretch-blur, 8px)) hue-rotate(var(--hue-angle, 180deg)); color: var(--hue-color, #00ccff); }
+      to   { opacity: 1; transform: scaleY(1); filter: blur(0) hue-rotate(0deg); color: var(--hue-color, #00ccff); }
     }
 
-    #dev-panel label {
+    .slide-text[data-effect="hue-stretch-y"].animating .word {
+      transform-origin: center top;
+      animation-name: word-hue-stretch-y;
+    }
+
+
+    /* ── Dev Sidebar ── */
+    #dev-sidebar {
+      position: fixed;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
       display: flex;
-      flex-direction: column;
-      gap: 4px;
-      color: #888;
+      align-items: center;
+      z-index: 100;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+    }
+
+    #sidebar-toggle {
+      background: var(--color-panel-bg);
+      border: 1px solid var(--color-panel-border);
+      border-right: none;
+      border-radius: 8px 0 0 8px;
+      width: 20px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 14px;
+      color: #999;
+      box-shadow: -2px 0 8px rgba(0,0,0,0.06);
+      flex-shrink: 0;
+      padding: 0;
+      line-height: 1;
+      transition: color 0.15s;
+    }
+    #sidebar-toggle:hover { color: #444; }
+
+    #sidebar-inner {
+      background: var(--color-panel-bg);
+      border: 1px solid var(--color-panel-border);
+      border-right: none;
+      border-radius: 12px 0 0 12px;
+      padding: 16px;
+      width: 210px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: -4px 0 24px rgba(0,0,0,0.08);
+      scrollbar-width: none;
+    }
+    #sidebar-inner::-webkit-scrollbar { display: none; }
+
+    #dev-sidebar.closed #sidebar-inner { display: none; }
+
+    /* Sidebar rows & controls */
+    .sb-section {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #aaa;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .sb-ctrl { margin-bottom: 10px; }
+
+    .sb-ctrl-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 3px;
+    }
+
+    .sb-label {
       font-size: 10px;
       text-transform: uppercase;
       letter-spacing: 0.06em;
+      color: #888;
     }
 
-    #dev-panel input[type="range"] {
-      width: 100px;
+    .sb-val {
+      font-size: 11px;
+      color: #333;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .sb-div {
+      border: none;
+      border-top: 1px solid var(--color-panel-border);
+      margin: 10px 0;
+    }
+
+    .sb-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    #sidebar-inner input[type="range"] {
+      width: 100%;
+      display: block;
       cursor: pointer;
       accent-color: #0a0a0a;
+      margin: 0;
     }
 
-    #dev-panel input[type="color"] {
-      width: 28px;
+    #sidebar-inner select,
+    #sidebar-inner input[type="text"] {
+      width: 100%;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 4px 7px;
+      font-size: 11px;
+      font-family: inherit;
+      color: #222;
+      background: #fff;
+      cursor: pointer;
+      box-sizing: border-box;
+    }
+
+    #sidebar-inner input[type="color"] {
+      width: 30px;
       height: 22px;
       padding: 1px 2px;
       border: 1px solid #ddd;
@@ -260,69 +350,38 @@
       background: white;
     }
 
-    #dev-panel select,
-    #dev-panel input[type="text"] {
-      border: 1px solid #ddd;
-      border-radius: 5px;
-      padding: 3px 7px;
-      font-size: 11px;
-      font-family: inherit;
-      color: #222;
-      background: #fff;
-      cursor: pointer;
+    /* ctrl-group divs hidden by default; shown by updatePanelForEffect */
+    .ctrl-group { display: none; }
+
+    /* ── Bottom buttons ── */
+    #bottom-btns {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 100;
+      display: flex;
+      gap: 8px;
     }
 
-    #dev-panel .value-display {
-      font-size: 11px;
-      color: #333;
-      font-variant-numeric: tabular-nums;
-      min-width: 36px;
-    }
-
-    #dev-panel .sep {
-      width: 1px;
-      height: 28px;
-      background: #e8e8e8;
-    }
-
-    #replay-btn {
+    #replay-btn, #pause-btn {
       background: #0a0a0a;
       color: #fff;
       border: none;
       border-radius: 6px;
       padding: 5px 12px;
       font-size: 11px;
-      font-family: inherit;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       cursor: pointer;
       letter-spacing: 0.03em;
     }
-
     #replay-btn:hover, #pause-btn:hover { background: #333; }
-
-    #pause-btn {
-      background: #0a0a0a;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      padding: 5px 12px;
-      font-size: 11px;
-      font-family: inherit;
-      cursor: pointer;
-      letter-spacing: 0.03em;
-    }
-
-    .panel-label {
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: #aaa;
-      font-weight: 600;
-    }
 
     @media (max-width: 640px) {
       .slide { padding: 80px 24px; }
       .slide-text { font-size: 28px; }
-      #dev-panel { display: none; }
+      #dev-sidebar { display: none; }
+      #bottom-btns { display: none; }
     }
   </style>
 </head>
@@ -337,148 +396,193 @@
   <div class="slides" id="slides">
 
     <section class="slide" data-index="0">
-      <p class="slide-text" data-effect="stretch-y">
+      <p class="slide-text" data-effect="hue-stretch-y">
         Science Fiction® is a software company turning frontier technology into iconic products.
       </p>
     </section>
 
     <section class="slide" data-index="1">
-      <p class="slide-text" data-effect="stretch-y">
+      <p class="slide-text" data-effect="hue-stretch-y">
         A small team of designers &amp; technologists who combine art, science, and internet culture to make the impossible inevitable.
       </p>
     </section>
 
   </div>
 
-  <!-- Dev Controls -->
-  <div id="dev-panel">
-    <span class="panel-label">Anim</span>
+  <!-- Floating sidebar (desktop only) -->
+  <div id="dev-sidebar">
+    <button id="sidebar-toggle" aria-label="Toggle controls">›</button>
+    <div id="sidebar-inner">
+      <div class="sb-section">Anim</div>
 
-    <label>
-      Effect
-      <select id="ctrl-effect">
-        <option value="blur-up">Blur + Slide Up</option>
-        <option value="blur">Blur</option>
-        <option value="slide-up">Slide Up</option>
-        <option value="blob">Blob Text</option>
-        <option value="stretch-y" selected>Stretch In</option>
-      </select>
-    </label>
+      <div class="sb-ctrl">
+        <div class="sb-ctrl-header"><span class="sb-label">Effect</span></div>
+        <select id="ctrl-effect">
+          <option value="blur-up">Blur + Slide Up</option>
+          <option value="blur">Blur</option>
+          <option value="slide-up">Slide Up</option>
+          <option value="blob">Blob Text</option>
+          <option value="stretch-y">Stretch In</option>
+          <option value="hue-stretch-y" selected>Hue Stretch</option>
+        </select>
+      </div>
 
-    <div class="sep"></div>
+      <hr class="sb-div">
 
-    <label>
-      Duration
-      <input type="range" id="ctrl-duration" min="80" max="1200" value="760" step="10">
-    </label>
-    <span class="value-display" id="val-duration">760ms</span>
+      <div class="sb-ctrl">
+        <div class="sb-ctrl-header">
+          <span class="sb-label">Duration</span>
+          <span class="sb-val" id="val-duration">950ms</span>
+        </div>
+        <input type="range" id="ctrl-duration" min="80" max="1200" value="950" step="10">
+      </div>
 
-    <div class="sep"></div>
+      <div class="sb-ctrl">
+        <div class="sb-ctrl-header">
+          <span class="sb-label">Stagger</span>
+          <span class="sb-val" id="val-stagger">85ms</span>
+        </div>
+        <input type="range" id="ctrl-stagger" min="0" max="200" value="85" step="5">
+      </div>
 
-    <label>
-      Stagger
-      <input type="range" id="ctrl-stagger" min="0" max="200" value="85" step="5">
-    </label>
-    <span class="value-display" id="val-stagger">85ms</span>
+      <div class="sb-ctrl">
+        <div class="sb-ctrl-header">
+          <span class="sb-label">, Pause</span>
+          <span class="sb-val" id="val-comma-pause">320ms</span>
+        </div>
+        <input type="range" id="ctrl-comma-pause" min="0" max="600" value="320" step="10">
+      </div>
 
-    <div class="sep"></div>
+      <hr class="sb-div">
 
-    <label>
-      , Pause
-      <input type="range" id="ctrl-comma-pause" min="0" max="600" value="320" step="10">
-    </label>
-    <span class="value-display" id="val-comma-pause">320ms</span>
+      <div class="sb-ctrl">
+        <div class="sb-ctrl-header"><span class="sb-label">Easing</span></div>
+        <select id="ctrl-easing">
+          <option value="cubic-bezier(0.16, 1, 0.3, 1)">Expo Out</option>
+          <option value="cubic-bezier(0.34, 1.56, 0.64, 1)">Spring</option>
+          <option value="cubic-bezier(0.25, 0.1, 0.25, 1)">Ease</option>
+          <option value="cubic-bezier(0, 0, 0.2, 1)">Ease Out</option>
+          <option value="cubic-bezier(0.4, 0, 1, 1)">Ease In</option>
+          <option value="linear">Linear</option>
+          <option value="custom" selected>Custom…</option>
+        </select>
+        <input type="text" id="ctrl-custom-easing" placeholder="cubic-bezier(…)" value="cubic-bezier(0.87, 0, 0.13, 1)" style="margin-top:6px;">
+      </div>
 
-    <div class="sep"></div>
+      <!-- Blur (blur / blur-up / blob) -->
+      <div class="ctrl-group" data-for="blur blur-up blob">
+        <hr class="sb-div">
+        <div class="sb-ctrl">
+          <div class="sb-ctrl-header">
+            <span class="sb-label">Blur</span>
+            <span class="sb-val" id="val-blur">12px</span>
+          </div>
+          <input type="range" id="ctrl-blur" min="0" max="32" value="12" step="1">
+        </div>
+      </div>
 
-    <label>
-      Easing
-      <select id="ctrl-easing">
-        <option value="cubic-bezier(0.16, 1, 0.3, 1)">Expo Out</option>
-        <option value="cubic-bezier(0.34, 1.56, 0.64, 1)">Spring</option>
-        <option value="cubic-bezier(0.25, 0.1, 0.25, 1)">Ease</option>
-        <option value="cubic-bezier(0, 0, 0.2, 1)">Ease Out</option>
-        <option value="cubic-bezier(0.4, 0, 1, 1)">Ease In</option>
-        <option value="linear">Linear</option>
-        <option value="custom" selected>Custom…</option>
-      </select>
-    </label>
+      <!-- Translate Y -->
+      <div class="ctrl-group" data-for="slide-up slide-down blur-up skew">
+        <hr class="sb-div">
+        <div class="sb-ctrl">
+          <div class="sb-ctrl-header">
+            <span class="sb-label">Translate Y</span>
+            <span class="sb-val" id="val-translate">12px</span>
+          </div>
+          <input type="range" id="ctrl-translate" min="0" max="80" value="12" step="2">
+        </div>
+      </div>
 
-    <input type="text" id="ctrl-custom-easing" placeholder="cubic-bezier(…)" value="cubic-bezier(0.87, 0, 0.13, 1)" style="width:160px;">
+      <!-- Scale From -->
+      <div class="ctrl-group" data-for="scale">
+        <hr class="sb-div">
+        <div class="sb-ctrl">
+          <div class="sb-ctrl-header">
+            <span class="sb-label">Scale From</span>
+            <span class="sb-val" id="val-scale-from">0.75</span>
+          </div>
+          <input type="range" id="ctrl-scale-from" min="0" max="1.5" value="0.75" step="0.05">
+        </div>
+      </div>
 
-    <span class="ctrl-group" data-for="blur blur-up blob" style="display:contents">
-      <div class="sep"></div>
-      <label>
-        Blur
-        <input type="range" id="ctrl-blur" min="0" max="32" value="12" step="1">
-      </label>
-      <span class="value-display" id="val-blur">12px</span>
-    </span>
+      <!-- Blob stroke -->
+      <div class="ctrl-group" data-for="blob">
+        <hr class="sb-div">
+        <div class="sb-ctrl">
+          <div class="sb-ctrl-header">
+            <span class="sb-label">Stroke</span>
+            <span class="sb-val" id="val-stroke">10px</span>
+          </div>
+          <input type="range" id="ctrl-stroke" min="0" max="20" value="10" step="1">
+        </div>
+      </div>
 
-    <span class="ctrl-group" data-for="slide-up slide-down blur-up skew" style="display:contents">
-      <div class="sep"></div>
-      <label>
-        Translate Y
-        <input type="range" id="ctrl-translate" min="0" max="80" value="12" step="2">
-      </label>
-      <span class="value-display" id="val-translate">12px</span>
-    </span>
+      <!-- Stretch + Blur (shared) -->
+      <div class="ctrl-group" data-for="stretch-y hue-stretch-y">
+        <hr class="sb-div">
+        <div class="sb-ctrl">
+          <div class="sb-ctrl-header">
+            <span class="sb-label">Stretch</span>
+            <span class="sb-val" id="val-stretch-amount">2.4×</span>
+          </div>
+          <input type="range" id="ctrl-stretch-amount" min="1" max="8" value="2.4" step="0.1">
+        </div>
+        <div class="sb-ctrl">
+          <div class="sb-ctrl-header">
+            <span class="sb-label">Blur</span>
+            <span class="sb-val" id="val-stretch-blur">6px</span>
+          </div>
+          <input type="range" id="ctrl-stretch-blur" min="0" max="24" value="6" step="1">
+        </div>
+      </div>
 
-    <span class="ctrl-group" data-for="scale" style="display:contents">
-      <div class="sep"></div>
-      <label>
-        Scale From
-        <input type="range" id="ctrl-scale-from" min="0" max="1.5" value="0.75" step="0.05">
-      </label>
-      <span class="value-display" id="val-scale-from">0.75</span>
-    </span>
+      <!-- C1 / C2 (Stretch In only) -->
+      <div class="ctrl-group" data-for="stretch-y">
+        <div class="sb-row">
+          <span class="sb-label">C1</span>
+          <input type="color" id="ctrl-stretch-color1" value="#00ccff">
+          <span class="sb-label">C2</span>
+          <input type="color" id="ctrl-stretch-color2" value="#ff75e1">
+        </div>
+      </div>
 
-    <span class="ctrl-group" data-for="blob" style="display:contents">
-      <div class="sep"></div>
-      <label>
-        Stroke
-        <input type="range" id="ctrl-stroke" min="0" max="20" value="10" step="1">
-      </label>
-      <span class="value-display" id="val-stroke">10px</span>
-    </span>
+      <!-- Color + Hue angle (Hue Stretch only) -->
+      <div class="ctrl-group" data-for="hue-stretch-y">
+        <div class="sb-row">
+          <span class="sb-label">Color</span>
+          <input type="color" id="ctrl-hue-color" value="#d52fc0">
+        </div>
+        <div class="sb-ctrl">
+          <div class="sb-ctrl-header">
+            <span class="sb-label">Hue °</span>
+            <span class="sb-val" id="val-hue-angle">250°</span>
+          </div>
+          <input type="range" id="ctrl-hue-angle" min="0" max="720" value="250" step="5">
+        </div>
+      </div>
 
-    <span class="ctrl-group" data-for="stretch-y" style="display:contents">
-      <div class="sep"></div>
-      <label>
-        Stretch
-        <input type="range" id="ctrl-stretch-amount" min="1" max="8" value="5.7" step="0.1">
-      </label>
-      <span class="value-display" id="val-stretch-amount">5.7×</span>
+      <!-- Fade Out (shared) -->
+      <div class="ctrl-group" data-for="stretch-y hue-stretch-y">
+        <div class="sb-ctrl">
+          <div class="sb-ctrl-header">
+            <span class="sb-label">Fade Out</span>
+            <span class="sb-val" id="val-stretch-fade">1600ms</span>
+          </div>
+          <input type="range" id="ctrl-stretch-fade" min="100" max="2000" value="1600" step="50">
+        </div>
+      </div>
 
-      <div class="sep"></div>
-      <label>
-        Blur
-        <input type="range" id="ctrl-stretch-blur" min="0" max="24" value="10" step="1">
-      </label>
-      <span class="value-display" id="val-stretch-blur">10px</span>
+      <hr class="sb-div">
 
-      <div class="sep"></div>
-      <label style="flex-direction:row;align-items:center;gap:6px;">
-        C1 <input type="color" id="ctrl-stretch-color1" value="#00ccff">
-      </label>
-      <label style="flex-direction:row;align-items:center;gap:6px;">
-        C2 <input type="color" id="ctrl-stretch-color2" value="#ff75e1">
-      </label>
+      <div class="sb-row" style="margin-bottom:0;">
+        <span class="sb-label" style="flex:1;">Per Letter</span>
+        <input type="checkbox" id="ctrl-per-letter">
+      </div>
+    </div>
+  </div>
 
-      <div class="sep"></div>
-      <label>
-        Fade Out
-        <input type="range" id="ctrl-stretch-fade" min="100" max="2000" value="800" step="50">
-      </label>
-      <span class="value-display" id="val-stretch-fade">800ms</span>
-    </span>
-
-    <div class="sep"></div>
-
-    <label style="flex-direction:row; align-items:center; gap:5px; color:#444; font-size:11px; text-transform:none; letter-spacing:0;">
-      <input type="checkbox" id="ctrl-per-letter"> Letters
-    </label>
-
+  <!-- Bottom controls: always visible -->
+  <div id="bottom-btns">
     <button id="pause-btn">⏸ Pause</button>
     <button id="replay-btn">↺ Replay</button>
   </div>
@@ -490,8 +594,8 @@
 
     // ── Config ──
     const config = {
-      effect: 'stretch-y',
-      duration: 760,
+      effect: 'hue-stretch-y',
+      duration: 950,
       stagger: 85,
       pauseAfterComma: 320,
       easing: 'cubic-bezier(0.87, 0, 0.13, 1)',
@@ -499,11 +603,13 @@
       translate: 12,
       strokeWidth: 10,
       scaleFrom: 0.75,
-      stretchAmount: 5.7,
-      stretchBlur: 10,
+      stretchAmount: 2.4,
+      stretchBlur: 6,
       stretchColor1: '#00ccff',
       stretchColor2: '#ff75e1',
-      stretchFadeDuration: 800,
+      stretchFadeDuration: 1600,
+      hueColor: '#d52fc0',
+      hueAngle: 250,
       perLetter: false,
     };
 
@@ -514,9 +620,9 @@
     };
 
     function updatePanelForEffect(effect) {
-      document.querySelectorAll('#dev-panel .ctrl-group').forEach(group => {
+      document.querySelectorAll('#dev-sidebar .ctrl-group').forEach(group => {
         const shown = group.dataset.for.split(' ').includes(effect);
-        group.style.display = shown ? 'contents' : 'none';
+        group.style.display = shown ? 'block' : 'none';
       });
 
       // Apply per-effect defaults for sliders
@@ -589,6 +695,8 @@
       el.style.setProperty('--stretch-blur', config.stretchBlur + 'px');
       el.style.setProperty('--stretch-color1', config.stretchColor1);
       el.style.setProperty('--stretch-color2', config.stretchColor2);
+      el.style.setProperty('--hue-color', config.hueColor);
+      el.style.setProperty('--hue-angle', config.hueAngle + 'deg');
       el.dataset.effect = config.effect;
     }
 
@@ -659,9 +767,9 @@
     let blobController = null;
     let stretchColorController = null;
 
-    // ── Stretch-y phase 2: color2 → text color, triggered per-word after animationend ──
-    // color1→color2 is handled by the CSS keyframe. Here we just finish the job.
-    function animateStretchColors(words) {
+    // ── Phase 2 color fade: fromColor → text color, triggered per-word after animationend ──
+    // Used by both stretch-y (fromColor = stretchColor2) and hue-stretch-y (fromColor = hueColor).
+    function animateStretchColors(words, fromColor) {
       let cancelled = false;
       const d = config.stretchFadeDuration;
 
@@ -673,7 +781,7 @@
           // Pin the animation's final state as inline styles, then kill the
           // animation so fill-mode stops overriding the cascade.
           w.style.opacity = '1';
-          w.style.color = config.stretchColor2;
+          w.style.color = fromColor;
           w.style.animationName = 'none'; // stop fill-mode from re-locking color2
 
           // Double-rAF: let the browser register the killed-animation state,
@@ -746,7 +854,9 @@
             config.duration, config.strokeWidth, config.blur
           );
         } else if (config.effect === 'stretch-y') {
-          stretchColorController = animateStretchColors(Array.from(el.querySelectorAll('.word')));
+          stretchColorController = animateStretchColors(Array.from(el.querySelectorAll('.word')), config.stretchColor2);
+        } else if (config.effect === 'hue-stretch-y') {
+          stretchColorController = animateStretchColors(Array.from(el.querySelectorAll('.word')), config.hueColor);
         }
       });
     }
@@ -766,9 +876,9 @@
 
     slides.forEach(slide => observer.observe(slide));
 
-    // ── Click/tap — advance to next slide (ignore clicks on dev panel) ──
+    // ── Click/tap — advance to next slide (ignore clicks on sidebar / bottom btns) ──
     slidesContainer.addEventListener('click', (e) => {
-      if (e.target.closest('#dev-panel')) return;
+      if (e.target.closest('#dev-sidebar') || e.target.closest('#bottom-btns')) return;
       const next = slides[Math.min(currentSlide + 1, slides.length - 1)];
       next.scrollIntoView({ behavior: 'smooth' });
     });
@@ -805,6 +915,8 @@
     bindRange('ctrl-stretch-blur', 'val-stretch-blur', 'stretchBlur', 'px');
     document.getElementById('ctrl-stretch-color1').addEventListener('input', e => { config.stretchColor1 = e.target.value; });
     document.getElementById('ctrl-stretch-color2').addEventListener('input', e => { config.stretchColor2 = e.target.value; });
+    document.getElementById('ctrl-hue-color').addEventListener('input', e => { config.hueColor = e.target.value; });
+    bindRange('ctrl-hue-angle', 'val-hue-angle', 'hueAngle', '°');
     bindRange('ctrl-stretch-fade', 'val-stretch-fade', 'stretchFadeDuration', 'ms');
 
     document.getElementById('ctrl-effect').addEventListener('change', e => {
@@ -813,7 +925,7 @@
       animateIn(slides[currentSlide].querySelector('.slide-text'));
     });
 
-    updatePanelForEffect(config.effect);
+    updatePanelForEffect(config.effect); // init panel visibility
 
     const easingSelect = document.getElementById('ctrl-easing');
     const customEasingInput = document.getElementById('ctrl-custom-easing');
@@ -850,6 +962,11 @@
 
     document.getElementById('ctrl-per-letter').addEventListener('change', e => {
       config.perLetter = e.target.checked;
+      if (config.perLetter) {
+        config.stagger = 15;
+        document.getElementById('ctrl-stagger').value = 15;
+        document.getElementById('val-stagger').textContent = '15ms';
+      }
       rebuildAndReplay();
     });
 
@@ -857,6 +974,14 @@
       paused = false;
       pauseBtn.textContent = '⏸ Pause';
       animateIn(slides[currentSlide].querySelector('.slide-text'));
+    });
+
+    // ── Sidebar toggle ──
+    const devSidebar = document.getElementById('dev-sidebar');
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    sidebarToggle.addEventListener('click', () => {
+      devSidebar.classList.toggle('closed');
+      sidebarToggle.textContent = devSidebar.classList.contains('closed') ? '‹' : '›';
     });
   </script>
 </body>
