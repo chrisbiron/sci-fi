@@ -187,6 +187,17 @@
       to   { opacity: 1; }
     }
 
+    /* Effect: stretch-y — scaleY from stretched → normal, blue → text color */
+    @keyframes word-stretch-y {
+      from { opacity: 0; transform: scaleY(var(--stretch-amount, 3)); color: #0057ff; }
+      to   { opacity: 1; transform: scaleY(1); color: var(--color-text); }
+    }
+
+    .slide-text[data-effect="stretch-y"].animating .word {
+      transform-origin: center top;
+      animation-name: word-stretch-y;
+    }
+
 
     /* ── Dev Controls Panel ── */
     #dev-panel {
@@ -327,6 +338,7 @@
         <option value="blur">Blur</option>
         <option value="slide-up">Slide Up</option>
         <option value="blob">Blob Text</option>
+        <option value="stretch-y">Stretch In</option>
       </select>
     </label>
 
@@ -407,6 +419,15 @@
       <span class="value-display" id="val-stroke">10px</span>
     </span>
 
+    <span class="ctrl-group" data-for="stretch-y" style="display:contents">
+      <div class="sep"></div>
+      <label>
+        Stretch
+        <input type="range" id="ctrl-stretch-amount" min="1" max="8" value="3" step="0.1">
+      </label>
+      <span class="value-display" id="val-stretch-amount">3×</span>
+    </span>
+
     <div class="sep"></div>
 
     <button id="pause-btn">⏸ Pause</button>
@@ -429,6 +450,7 @@
       translate: 12,
       strokeWidth: 10,
       scaleFrom: 0.75,
+      stretchAmount: 3,
     };
 
     const effectDefaults = {
@@ -479,6 +501,7 @@
       el.style.setProperty('--translate-amount', config.translate + 'px');
       el.style.setProperty('--stroke-width', config.strokeWidth + 'px');
       el.style.setProperty('--scale-from', config.scaleFrom);
+      el.style.setProperty('--stretch-amount', config.stretchAmount);
       el.dataset.effect = config.effect;
     }
 
@@ -628,6 +651,7 @@
     bindRange('ctrl-translate', 'val-translate', 'translate', 'px');
     bindRange('ctrl-stroke', 'val-stroke', 'strokeWidth', 'px');
     bindRange('ctrl-scale-from', 'val-scale-from', 'scaleFrom', '');
+    bindRange('ctrl-stretch-amount', 'val-stretch-amount', 'stretchAmount', '×');
 
     document.getElementById('ctrl-effect').addEventListener('change', e => {
       config.effect = e.target.value;
