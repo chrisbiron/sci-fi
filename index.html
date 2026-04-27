@@ -661,12 +661,13 @@
           w.removeEventListener('animationend', onEnd);
           if (cancelled) return;
 
-          // Pin the animation's final state as inline styles so we can
-          // cancel fill-mode and transition freely without a visual jump.
+          // Pin the animation's final state as inline styles, then kill the
+          // animation so fill-mode stops overriding the cascade.
           w.style.opacity = '1';
           w.style.color = config.stretchColor2;
+          w.style.animationName = 'none'; // stop fill-mode from re-locking color2
 
-          // Double-rAF: let the browser register the pinned inline state,
+          // Double-rAF: let the browser register the killed-animation state,
           // then start the transition to the inherited text color.
           requestAnimationFrame(() => requestAnimationFrame(() => {
             if (cancelled) return;
@@ -677,6 +678,7 @@
               setTimeout(() => {
                 if (cancelled) return;
                 w.style.opacity = '';
+                w.style.animationName = '';
                 w.style.transition = '';
               }, d);
             });
