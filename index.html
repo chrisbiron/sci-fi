@@ -80,21 +80,6 @@
       -moz-osx-font-smoothing: grayscale;
     }
 
-    /* ── Logo ── */
-    .logo {
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 201; /* above intro overlay */
-      font-size: 20px;
-      letter-spacing: 2px;
-      line-height: 1;
-      color: var(--color-bg);
-      user-select: none;
-      cursor: pointer;
-    }
-
     /* ── Slides ── */
     .slides {
       position: fixed;
@@ -237,8 +222,8 @@
 
     /* Effect: hue-stretch-y — same stretch but color stays constant; hue-rotate spins across full animation */
     @keyframes word-hue-stretch-y {
-      from { opacity: 0; transform: scaleY(var(--stretch-amount, 3)); filter: blur(var(--stretch-blur, 8px)) hue-rotate(var(--hue-angle, 180deg)); color: var(--hue-color, #000ff1); color: var(--hue-color, color(display-p3 0 0.059 0.945)); }
-      to   { opacity: 1; transform: scaleY(1); filter: blur(0) hue-rotate(0deg); color: var(--hue-color, #000ff1); color: var(--hue-color, color(display-p3 0 0.059 0.945)); }
+      from { opacity: 0; transform: scaleY(var(--stretch-amount, 3)); filter: blur(var(--stretch-blur, 8px)) hue-rotate(var(--hue-angle, 180deg)); color: var(--hue-color, #f113f4); color: var(--hue-color, color(display-p3 0.945 0.071 0.957)); }
+      to   { opacity: 1; transform: scaleY(1); filter: blur(0) hue-rotate(0deg); color: var(--hue-color, #f113f4); color: var(--hue-color, color(display-p3 0.945 0.071 0.957)); }
     }
 
     .slide-text[data-effect="hue-stretch-y"].animating .word {
@@ -404,7 +389,6 @@
     .sb-action-btn:hover { background: #333; background: color(display-p3 0.2 0.2 0.2); }
 
     /* ── Intro sequence ── */
-    body.intro-active .logo { opacity: 0 !important; transition: none !important; }
 
     /* Science→Sci / Fiction→Fi — permanent elements above the overlay */
     #intro-word-sci,
@@ -548,11 +532,6 @@
 </head>
 <body>
 
-  <div class="logo">
-    <svg width="32" height="17" viewBox="0 0 32 17" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M22.2209 12.2954C22.5875 13.2574 22.75 14.4781 22.75 16H25.25C25.25 14.4782 25.4128 13.2576 25.7793 12.2957C26.7187 12.7167 27.6967 13.4647 28.7727 14.5408L30.5405 12.7729C29.4645 11.6969 28.7165 10.7189 28.2954 9.77954C29.2574 9.41292 30.478 9.25 32 9.25V6.75C30.4781 6.75 29.2574 6.58752 28.2954 6.22095C28.7164 5.28147 29.4643 4.30325 30.5405 3.22705L28.7727 1.45923C27.6966 2.53531 26.7187 3.28354 25.7793 3.70459C25.4127 2.74258 25.25 1.52196 25.25 0L22.75 2.18557e-07C22.75 1.52203 22.5876 2.7428 22.2209 3.70483C21.2814 3.28384 20.3031 2.53557 19.2268 1.45923L17.459 3.22705C18.5352 4.30331 19.2836 5.28142 19.7046 6.22095C18.7426 6.58752 17.5219 6.75 16 6.75C11 6.75 9.25 5 9.25 2.41602e-06L6.75 2.63457e-06C6.75 5 5 6.75 0 6.75L2.18557e-07 9.25C5 9.25 6.75 11 6.75 16L9.25 16C9.25 11 11 9.25 16 9.25C17.5218 9.25 18.7424 9.41276 19.7043 9.7793C19.2833 10.7187 18.5351 11.6968 17.459 12.7729L19.2268 14.5408C20.3031 13.4645 21.2814 12.7164 22.2209 12.2954Z" fill="currentColor"/>
-    </svg>
-  </div>
 
   <div class="slides" id="slides">
 
@@ -732,7 +711,7 @@
       <div class="ctrl-group" data-for="hue-stretch-y">
         <div class="sb-row">
           <span class="sb-label">Color</span>
-          <input type="color" id="ctrl-hue-color" value="#000ff1">
+          <input type="color" id="ctrl-hue-color" value="#f113f4">
         </div>
         <div class="sb-ctrl">
           <div class="sb-ctrl-header">
@@ -766,6 +745,13 @@
       <div class="sb-row" style="margin-bottom:0; gap:6px;">
         <button id="pause-btn" class="sb-action-btn">⏸ Pause</button>
         <button id="replay-btn" class="sb-action-btn">↺ Replay</button>
+      </div>
+
+      <hr class="sb-div">
+
+      <div class="sb-row" style="margin-bottom:0;">
+        <span class="sb-label" style="flex:1;">Dark Mode</span>
+        <input type="checkbox" id="ctrl-dark-mode">
       </div>
     </div>
   </div>
@@ -805,7 +791,7 @@
       stretchColor1: CSS.supports('color', 'color(display-p3 0 0 0)') ? 'color(display-p3 0 0.84 1)' : '#00ccff',
       stretchColor2: CSS.supports('color', 'color(display-p3 0 0 0)') ? 'color(display-p3 1 0.46 0.89)' : '#ff75e1',
       stretchFadeDuration: 1600,
-      hueColor: CSS.supports('color', 'color(display-p3 0 0 0)') ? 'color(display-p3 0 0.059 0.945)' : '#000ff1',
+      hueColor: CSS.supports('color', 'color(display-p3 0 0 0)') ? 'color(display-p3 0.945 0.071 0.957)' : '#f113f4',
       hueAngle: 250,
       perLetter: false,
     };
@@ -1168,8 +1154,8 @@
       pauseBtn.textContent = paused ? '▶ Play' : '⏸ Pause';
     });
 
-    document.querySelector('.logo').addEventListener('click', () => {
-      document.documentElement.classList.toggle('dark');
+    document.getElementById('ctrl-dark-mode').addEventListener('change', e => {
+      document.documentElement.classList.toggle('dark', e.target.checked);
     });
 
     document.getElementById('ctrl-per-letter').addEventListener('change', e => {
@@ -1296,7 +1282,6 @@
     // ── Intro sequence ──
     function runIntro() {
       const intro   = document.getElementById('intro');
-      const logo    = document.querySelector('.logo');
       const wordSci = introWordSci = document.getElementById('intro-word-sci');
       const wordFi  = introWordFi  = document.getElementById('intro-word-fi');
 
@@ -1345,8 +1330,6 @@
             window.addEventListener('resize', onFiResize);
           }
           intro.classList.add('p2');
-          logo.style.transition = 'opacity 0.6s ease 0.1s';
-          logo.style.opacity = '1';
         });
 
         setTimeout(() => {
