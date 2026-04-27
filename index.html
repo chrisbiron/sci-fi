@@ -202,7 +202,7 @@
     /* Effect: stretch-y — scaleY + blur in, color1→color2 during animation, color2→black after */
     @keyframes word-stretch-y {
       from { opacity: 0; transform: scaleY(var(--stretch-amount, 3)); filter: blur(var(--stretch-blur, 8px)); color: var(--stretch-color1, #00ccff); }
-      50%  { color: var(--stretch-color1, #00ccff); }
+      20%  { color: var(--stretch-color1, #00ccff); }
       to   { opacity: 1; transform: scaleY(1); filter: blur(0); color: var(--stretch-color2, #ff75e1); }
     }
 
