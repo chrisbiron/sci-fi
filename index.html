@@ -199,10 +199,10 @@
       to   { opacity: 1; }
     }
 
-    /* Effect: stretch-y — scaleY from stretched → normal, blue → text color */
+    /* Effect: stretch-y — scaleY from stretched → normal, blur in, color via JS */
     @keyframes word-stretch-y {
-      from { opacity: 0; transform: scaleY(var(--stretch-amount, 3)); color: #0057ff; }
-      to   { opacity: 1; transform: scaleY(1); color: var(--color-text); }
+      from { opacity: 0; transform: scaleY(var(--stretch-amount, 3)); filter: blur(var(--stretch-blur, 8px)); }
+      to   { opacity: 1; transform: scaleY(1); filter: blur(0); }
     }
 
     .slide-text[data-effect="stretch-y"].animating .word {
@@ -247,6 +247,16 @@
       width: 100px;
       cursor: pointer;
       accent-color: #0a0a0a;
+    }
+
+    #dev-panel input[type="color"] {
+      width: 28px;
+      height: 22px;
+      padding: 1px 2px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      cursor: pointer;
+      background: white;
     }
 
     #dev-panel select,
@@ -438,6 +448,21 @@
         <input type="range" id="ctrl-stretch-amount" min="1" max="8" value="3" step="0.1">
       </label>
       <span class="value-display" id="val-stretch-amount">3×</span>
+
+      <div class="sep"></div>
+      <label>
+        Blur
+        <input type="range" id="ctrl-stretch-blur" min="0" max="24" value="8" step="1">
+      </label>
+      <span class="value-display" id="val-stretch-blur">8px</span>
+
+      <div class="sep"></div>
+      <label style="flex-direction:row;align-items:center;gap:6px;">
+        C1 <input type="color" id="ctrl-stretch-color1" value="#f5d800">
+      </label>
+      <label style="flex-direction:row;align-items:center;gap:6px;">
+        C2 <input type="color" id="ctrl-stretch-color2" value="#0057ff">
+      </label>
     </span>
 
     <div class="sep"></div>
@@ -467,6 +492,9 @@
       strokeWidth: 10,
       scaleFrom: 0.75,
       stretchAmount: 3,
+      stretchBlur: 8,
+      stretchColor1: '#f5d800',
+      stretchColor2: '#0057ff',
       perLetter: false,
     };
 
@@ -549,6 +577,7 @@
       el.style.setProperty('--stroke-width', config.strokeWidth + 'px');
       el.style.setProperty('--scale-from', config.scaleFrom);
       el.style.setProperty('--stretch-amount', config.stretchAmount);
+      el.style.setProperty('--stretch-blur', config.stretchBlur + 'px');
       el.dataset.effect = config.effect;
     }
 
@@ -617,18 +646,57 @@
     }
 
     let blobController = null;
+    let stretchColorController = null;
+
+    // ── Stretch-y phase 2: color1 → color2 → text color, triggered per-word after animationend ──
+    function animateStretchColors(words) {
+      let cancelled = false;
+      const d = Math.round(config.duration / 2);
+
+      words.forEach(w => {
+        w.addEventListener('animationend', function onEnd() {
+          w.removeEventListener('animationend', onEnd);
+          if (cancelled) return;
+          w.style.transition = `color ${d}ms ease`;
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            if (cancelled) return;
+            w.style.color = config.stretchColor2;
+            setTimeout(() => {
+              if (cancelled) return;
+              w.style.color = ''; // inherit var(--color-text)
+              setTimeout(() => { if (!cancelled) w.style.transition = ''; }, d);
+            }, d);
+          }));
+        });
+      });
+
+      return {
+        cancel() {
+          cancelled = true;
+          words.forEach(w => { w.style.color = ''; w.style.transition = ''; });
+        }
+      };
+    }
 
     // ── Animate words in ──
     function animateIn(el) {
       buildWords(el);
       applyConfig(el);
 
-      // Cancel any running blob animation and clean up its inline styles
+      // Cancel any running phase-2 animations
       blobController?.cancel();
       blobController = null;
+      stretchColorController?.cancel();
+      stretchColorController = null;
 
       el.classList.remove('animating');
       void el.offsetWidth;
+
+      // Clear lingering color/transition inline styles from previous run
+      el.querySelectorAll('.word').forEach(w => {
+        w.style.color = '';
+        w.style.transition = '';
+      });
 
       let cumDelay = 0;
       el.querySelectorAll('.word').forEach((w) => {
@@ -637,6 +705,11 @@
         if (w.textContent.trimEnd().endsWith(',')) cumDelay += config.pauseAfterComma;
       });
 
+      // For stretch-y, set color1 before animation so words appear in that color
+      if (config.effect === 'stretch-y') {
+        el.querySelectorAll('.word').forEach(w => { w.style.color = config.stretchColor1; });
+      }
+
       requestAnimationFrame(() => {
         el.classList.add('animating');
         if (config.effect === 'blob') {
@@ -644,6 +717,8 @@
             Array.from(el.querySelectorAll('.word')),
             config.duration, config.strokeWidth, config.blur
           );
+        } else if (config.effect === 'stretch-y') {
+          stretchColorController = animateStretchColors(Array.from(el.querySelectorAll('.word')));
         }
       });
     }
@@ -699,6 +774,9 @@
     bindRange('ctrl-stroke', 'val-stroke', 'strokeWidth', 'px');
     bindRange('ctrl-scale-from', 'val-scale-from', 'scaleFrom', '');
     bindRange('ctrl-stretch-amount', 'val-stretch-amount', 'stretchAmount', '×');
+    bindRange('ctrl-stretch-blur', 'val-stretch-blur', 'stretchBlur', 'px');
+    document.getElementById('ctrl-stretch-color1').addEventListener('input', e => { config.stretchColor1 = e.target.value; });
+    document.getElementById('ctrl-stretch-color2').addEventListener('input', e => { config.stretchColor2 = e.target.value; });
 
     document.getElementById('ctrl-effect').addEventListener('change', e => {
       config.effect = e.target.value;
