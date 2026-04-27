@@ -210,26 +210,6 @@
       animation-name: word-stretch-y;
     }
 
-    /* ── Typing cursor (per-letter mode) ── */
-    .type-cursor {
-      display: inline;
-      color: var(--color-text);
-      font-weight: 300;
-      animation: cursor-blink 0.65s ease-in-out infinite;
-    }
-
-    .type-cursor--done {
-      animation: cursor-fade-out 0.5s ease forwards;
-    }
-
-    @keyframes cursor-blink {
-      0%, 100% { opacity: 1; }
-      50%       { opacity: 0; }
-    }
-
-    @keyframes cursor-fade-out {
-      to { opacity: 0; }
-    }
 
     /* ── Dev Controls Panel ── */
     #dev-panel {
@@ -667,32 +647,6 @@
       };
     }
 
-    // ── Typing cursor: follows each letter as it animates in ──
-    function setupTypingCursor(el) {
-      const words = Array.from(el.querySelectorAll('.word'));
-      if (!words.length) return;
-
-      const cursor = document.createElement('span');
-      cursor.className = 'type-cursor';
-      cursor.setAttribute('aria-hidden', 'true');
-      cursor.textContent = '|';
-
-      // Start cursor before the first letter — it blinks here while text "waits" to type
-      words[0].parentNode.insertBefore(cursor, words[0]);
-
-      words.forEach((w, i) => {
-        w.addEventListener('animationend', function onEnd() {
-          w.removeEventListener('animationend', onEnd);
-          // Move cursor to right after this letter
-          w.parentNode.insertBefore(cursor, w.nextSibling);
-          // After the last letter, let it blink briefly then fade out
-          if (i === words.length - 1) {
-            setTimeout(() => cursor.classList.add('type-cursor--done'), 800);
-          }
-        });
-      });
-    }
-
     let blobController = null;
     let stretchColorController = null;
 
@@ -760,14 +714,13 @@
       el.classList.remove('animating');
       void el.offsetWidth;
 
-      // Clear all lingering inline styles and cursor from previous run
+      // Clear all lingering inline styles from previous run
       el.querySelectorAll('.word').forEach(w => {
         w.style.color = '';
         w.style.opacity = '';
         w.style.animationName = '';
         w.style.transition = '';
       });
-      el.querySelectorAll('.type-cursor').forEach(c => c.remove());
 
       let cumDelay = 0;
       el.querySelectorAll('.word').forEach((w) => {
@@ -775,10 +728,6 @@
         cumDelay += config.stagger;
         if (w.textContent.trimEnd().endsWith(',')) cumDelay += config.pauseAfterComma;
       });
-
-      // Cursor goes in before the RAF so it's visible at frame 0 — blinking
-      // at position 0 before the first letter "types in".
-      if (config.perLetter) setupTypingCursor(el);
 
       requestAnimationFrame(() => {
         el.classList.add('animating');
