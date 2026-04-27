@@ -199,10 +199,10 @@
       to   { opacity: 1; }
     }
 
-    /* Effect: stretch-y — scaleY from stretched → normal, blur in, color via JS */
+    /* Effect: stretch-y — scaleY + blur in, color1→color2 during animation, color2→black after */
     @keyframes word-stretch-y {
-      from { opacity: 0; transform: scaleY(var(--stretch-amount, 3)); filter: blur(var(--stretch-blur, 8px)); }
-      to   { opacity: 1; transform: scaleY(1); filter: blur(0); }
+      from { opacity: 0; transform: scaleY(var(--stretch-amount, 3)); filter: blur(var(--stretch-blur, 8px)); color: var(--stretch-color1, #f5d800); }
+      to   { opacity: 1; transform: scaleY(1); filter: blur(0); color: var(--stretch-color2, #0057ff); }
     }
 
     .slide-text[data-effect="stretch-y"].animating .word {
@@ -578,6 +578,8 @@
       el.style.setProperty('--scale-from', config.scaleFrom);
       el.style.setProperty('--stretch-amount', config.stretchAmount);
       el.style.setProperty('--stretch-blur', config.stretchBlur + 'px');
+      el.style.setProperty('--stretch-color1', config.stretchColor1);
+      el.style.setProperty('--stretch-color2', config.stretchColor2);
       el.dataset.effect = config.effect;
     }
 
@@ -648,7 +650,8 @@
     let blobController = null;
     let stretchColorController = null;
 
-    // ── Stretch-y phase 2: color1 → color2 → text color, triggered per-word after animationend ──
+    // ── Stretch-y phase 2: color2 → text color, triggered per-word after animationend ──
+    // color1→color2 is handled by the CSS keyframe. Here we just finish the job.
     function animateStretchColors(words) {
       let cancelled = false;
       const d = Math.round(config.duration / 2);
@@ -657,15 +660,26 @@
         w.addEventListener('animationend', function onEnd() {
           w.removeEventListener('animationend', onEnd);
           if (cancelled) return;
-          w.style.transition = `color ${d}ms ease`;
+
+          // Pin the animation's final state as inline styles so we can
+          // cancel fill-mode and transition freely without a visual jump.
+          w.style.opacity = '1';
+          w.style.color = config.stretchColor2;
+
+          // Double-rAF: let the browser register the pinned inline state,
+          // then start the transition to the inherited text color.
           requestAnimationFrame(() => requestAnimationFrame(() => {
             if (cancelled) return;
-            w.style.color = config.stretchColor2;
-            setTimeout(() => {
+            w.style.transition = `color ${d}ms ease`;
+            requestAnimationFrame(() => {
               if (cancelled) return;
-              w.style.color = ''; // inherit var(--color-text)
-              setTimeout(() => { if (!cancelled) w.style.transition = ''; }, d);
-            }, d);
+              w.style.color = ''; // revert to cascade → var(--color-text)
+              setTimeout(() => {
+                if (cancelled) return;
+                w.style.opacity = '';
+                w.style.transition = '';
+              }, d);
+            });
           }));
         });
       });
@@ -673,7 +687,11 @@
       return {
         cancel() {
           cancelled = true;
-          words.forEach(w => { w.style.color = ''; w.style.transition = ''; });
+          words.forEach(w => {
+            w.style.color = '';
+            w.style.opacity = '';
+            w.style.transition = '';
+          });
         }
       };
     }
@@ -704,11 +722,6 @@
         cumDelay += config.stagger;
         if (w.textContent.trimEnd().endsWith(',')) cumDelay += config.pauseAfterComma;
       });
-
-      // For stretch-y, set color1 before animation so words appear in that color
-      if (config.effect === 'stretch-y') {
-        el.querySelectorAll('.word').forEach(w => { w.style.color = config.stretchColor1; });
-      }
 
       requestAnimationFrame(() => {
         el.classList.add('animating');
