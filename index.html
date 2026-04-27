@@ -678,7 +678,8 @@
               setTimeout(() => {
                 if (cancelled) return;
                 w.style.opacity = '';
-                w.style.animationName = '';
+                // Leave animationName:'none' — clearing it would let the CSS rule
+                // restart the animation. animateIn wipes it on the next replay.
                 w.style.transition = '';
               }, d);
             });
@@ -692,6 +693,7 @@
           words.forEach(w => {
             w.style.color = '';
             w.style.opacity = '';
+            w.style.animationName = '';
             w.style.transition = '';
           });
         }
@@ -712,9 +714,11 @@
       el.classList.remove('animating');
       void el.offsetWidth;
 
-      // Clear lingering color/transition inline styles from previous run
+      // Clear all lingering inline styles from previous run
       el.querySelectorAll('.word').forEach(w => {
         w.style.color = '';
+        w.style.opacity = '';
+        w.style.animationName = '';
         w.style.transition = '';
       });
 
