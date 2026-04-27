@@ -430,6 +430,10 @@
 
     <div class="sep"></div>
 
+    <label style="flex-direction:row; align-items:center; gap:5px; color:#444; font-size:11px; text-transform:none; letter-spacing:0;">
+      <input type="checkbox" id="ctrl-per-letter"> Letters
+    </label>
+
     <button id="pause-btn">⏸ Pause</button>
     <button id="replay-btn">↺ Replay</button>
   </div>
@@ -451,6 +455,7 @@
       strokeWidth: 10,
       scaleFrom: 0.75,
       stretchAmount: 3,
+      perLetter: false,
     };
 
     const effectDefaults = {
@@ -474,12 +479,15 @@
       }
     }
 
-    // ── Split text into word spans ──
+    // ── Split text into word/letter spans ──
     function buildWords(el) {
       if (el.dataset.built) return;
+
+      // Preserve original HTML so we can rebuild when toggling per-letter
+      if (!el.dataset.originalHtml) el.dataset.originalHtml = el.innerHTML;
       el.dataset.built = '1';
 
-      const raw = el.innerHTML
+      const raw = el.dataset.originalHtml
         .replace(/&amp;/g, '&')
         .replace(/&nbsp;/g, '\u00a0')
         .replace(/®/g, '<sup>®</sup>')
@@ -489,8 +497,34 @@
       el.innerHTML = tokens.map(token => {
         const word = token.trimEnd();
         const space = token.slice(word.length);
-        return `<span class="word">${word}</span>${space ? space : ''}`;
+        if (config.perLetter) {
+          // Split word into individual character spans, keeping <sup>…</sup> as one unit
+          const letters = [];
+          let i = 0;
+          while (i < word.length) {
+            if (word.slice(i).startsWith('<sup>')) {
+              const end = word.indexOf('</sup>', i) + 6;
+              letters.push(`<span class="word">${word.slice(i, end)}</span>`);
+              i = end;
+            } else {
+              letters.push(`<span class="word">${word[i]}</span>`);
+              i++;
+            }
+          }
+          return letters.join('') + (space || '');
+        } else {
+          return `<span class="word">${word}</span>${space || ''}`;
+        }
       }).join('');
+    }
+
+    function rebuildAndReplay() {
+      slides.forEach(slide => {
+        const el = slide.querySelector('.slide-text');
+        el.removeAttribute('data-built');
+        el.classList.remove('animating');
+      });
+      animateIn(slides[currentSlide].querySelector('.slide-text'));
     }
 
     // ── Apply CSS custom props ──
@@ -692,6 +726,11 @@
 
     document.querySelector('.logo').addEventListener('click', () => {
       document.documentElement.classList.toggle('dark');
+    });
+
+    document.getElementById('ctrl-per-letter').addEventListener('change', e => {
+      config.perLetter = e.target.checked;
+      rebuildAndReplay();
     });
 
     document.getElementById('replay-btn').addEventListener('click', () => {
