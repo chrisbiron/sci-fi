@@ -106,9 +106,21 @@
     }
 
     /* "Science Fiction®" — first two words of slide 0 */
-    .slide[data-index="0"] .slide-text .word:nth-child(-n+2) {
+    /* per-word mode: .word is a direct child */
+    .slide[data-index="0"] .slide-text > .word:nth-child(-n+2) {
       font-family: 'Rhymes Text', serif;
       font-weight: 500;
+    }
+    /* per-letter mode: letters are inside .word-group wrappers */
+    .slide[data-index="0"] .slide-text > .word-group:nth-child(-n+2) .word {
+      font-family: 'Rhymes Text', serif;
+      font-weight: 500;
+    }
+
+    /* per-letter: keep a word's letters together on one line */
+    .slide-text .word-group {
+      display: inline;
+      white-space: nowrap;
     }
 
     .slide-text .word {
@@ -499,6 +511,7 @@
         const space = token.slice(word.length);
         if (config.perLetter) {
           // Split word into individual character spans, keeping <sup>…</sup> as one unit
+          // Wrap in .word-group so the word never breaks across lines
           const letters = [];
           let i = 0;
           while (i < word.length) {
@@ -511,7 +524,7 @@
               i++;
             }
           }
-          return letters.join('') + (space || '');
+          return `<span class="word-group">${letters.join('')}</span>${space || ''}`;
         } else {
           return `<span class="word">${word}</span>${space || ''}`;
         }
