@@ -401,10 +401,10 @@
       pointer-events: none;
       -webkit-font-smoothing: antialiased;
       transition: opacity 3s 0.5s ease-in-out, filter 3s 0.5s ease-in-out,
-                  left 0.4s ease-out,
-                  right 0.4s ease-out,
-                  font-size 0.4s ease-out,
-                  color 0.4s ease-out;
+                  left 0.4s ease-in-out,
+                  right 0.4s ease-in-out,
+                  font-size 0.4s ease-in-out,
+                  color 0.4s ease-in-out;
     }
     #intro-word-sci { left: 50px; }
     #intro-word-fi  { right: 50px; }
@@ -419,7 +419,7 @@
       overflow: hidden;
       max-width: 600px;
       vertical-align: top;
-      transition: max-width 0.4s ease-out, opacity 0.4s ease-out;
+      transition: max-width 0.4s ease-in-out, opacity 0.4s ease-in-out;
     }
     .p2 .intro-drop { max-width: 0; opacity: 0; }
 
@@ -441,17 +441,17 @@
       transform: translate(-50%, -50%);
       z-index: 201;
       pointer-events: none;
-      transition: transform 0.4s cubic-bezier(0.45, 0, 0.55, 1);
+      transition: transform 0.4s ease-in-out;
     }
     /* Exit: slide to top of screen + scale down */
     #intro-logo-large.exit {
-      transform: translate(-50%, calc(-50% - 50vh + 29px)) scale(0.145);
+      transform: translate(-50%, calc(-50% - 50vh + 29px)) scale(0.23);
     }
 
     #intro-canvas {
       display: block;
-      width: 255px;
-      height: 127px;
+      width: 179px;
+      height: 89px;
     }
 
     @media (max-width: 640px) {
@@ -1156,17 +1156,39 @@
       document.body.appendChild(probe);
       const fiW = probe.offsetWidth;
       probe.remove();
-      // Right-edge of "Fi" should land at 20px from right → left = viewport - 20 - fiW
-      const fiTargetLeft = window.innerWidth - 20 - fiW;
 
       // Set up canvas dimensions
       const canvas = document.getElementById('intro-canvas');
       canvas.width  = seqConfig.width;
       canvas.height = seqConfig.height;
 
-      // Phase 2 fires at the 5.6s mark — canvas exits upward, overlay fades, words move to edges.
+      // Track which phase we're in so the resize handler knows what to do.
+      let phase2Fired = false;
+
+      // Reposition #intro-word-fi on resize (wordSci is CSS-only and handles itself).
+      // Suppress the CSS transition during resize so it snaps immediately.
+      function onResize() {
+        const noTransition = 'transition: none !important';
+        wordFi.style.cssText += '; transition: none';
+        if (phase2Fired) {
+          wordFi.style.left = (window.innerWidth - 20 - fiW) + 'px';
+        } else {
+          // In p1: keep "Fiction" right-edge 50px from right.
+          wordFi.style.left = (window.innerWidth - 50 - wordFi.offsetWidth) + 'px';
+        }
+        // Restore transitions after two rAFs (one to apply the position, one to re-enable).
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          wordFi.style.transition = '';
+        }));
+      }
+      window.addEventListener('resize', onResize);
+
+      // Phase 2 fires at the 3.6s mark — canvas exits upward, overlay fades, words move to edges.
       // All visual mutations are batched into a single rAF so they land in exactly one paint.
       function triggerPhase2() {
+        phase2Fired = true;
+        // Recalculate fiTargetLeft using current viewport width at fire time.
+        const fiTargetLeft = window.innerWidth - 20 - fiW;
         requestAnimationFrame(() => {
           document.getElementById('intro-logo-large').classList.add('exit');
           wordSci.classList.add('p2');
@@ -1183,7 +1205,10 @@
           startObserving();
         }, 400);
 
-        setTimeout(() => intro.remove(), 1100);
+        setTimeout(() => {
+          window.removeEventListener('resize', onResize);
+          intro.remove();
+        }, 1100);
       }
 
       // Preload frames in parallel with the initial fade-in delay.
