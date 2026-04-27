@@ -464,6 +464,13 @@
       <label style="flex-direction:row;align-items:center;gap:6px;">
         C2 <input type="color" id="ctrl-stretch-color2" value="#ff75e1">
       </label>
+
+      <div class="sep"></div>
+      <label>
+        Fade Out
+        <input type="range" id="ctrl-stretch-fade" min="100" max="2000" value="800" step="50">
+      </label>
+      <span class="value-display" id="val-stretch-fade">800ms</span>
     </span>
 
     <div class="sep"></div>
@@ -496,6 +503,7 @@
       stretchBlur: 10,
       stretchColor1: '#00ccff',
       stretchColor2: '#ff75e1',
+      stretchFadeDuration: 800,
       perLetter: false,
     };
 
@@ -655,7 +663,7 @@
     // color1→color2 is handled by the CSS keyframe. Here we just finish the job.
     function animateStretchColors(words) {
       let cancelled = false;
-      const d = Math.round(config.duration / 2);
+      const d = config.stretchFadeDuration;
 
       words.forEach(w => {
         w.addEventListener('animationend', function onEnd() {
@@ -797,6 +805,7 @@
     bindRange('ctrl-stretch-blur', 'val-stretch-blur', 'stretchBlur', 'px');
     document.getElementById('ctrl-stretch-color1').addEventListener('input', e => { config.stretchColor1 = e.target.value; });
     document.getElementById('ctrl-stretch-color2').addEventListener('input', e => { config.stretchColor2 = e.target.value; });
+    bindRange('ctrl-stretch-fade', 'val-stretch-fade', 'stretchFadeDuration', 'ms');
 
     document.getElementById('ctrl-effect').addEventListener('change', e => {
       config.effect = e.target.value;
