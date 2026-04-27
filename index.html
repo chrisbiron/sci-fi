@@ -188,7 +188,7 @@
     .slide-text[data-effect="slide-up"].animating     .word { animation-name: word-slide-up; }
     .slide-text[data-effect="slide-down"].animating   .word { animation-name: word-slide-down; }
     .slide-text[data-effect="blur"].animating         .word { animation-name: word-blur; }
-    .slide-text[data-effect="blur-up"].animating      .word { animation-name: word-blur-up; }
+    .slide-text[data-effect="stretch-y"].animating      .word { animation-name: word-blur-up; }
     .slide-text[data-effect="scale"].animating        .word { animation-name: word-scale; }
     .slide-text[data-effect="skew"].animating         .word { animation-name: word-skew; }
     .slide-text[data-effect="blob"].animating         .word { animation-name: word-blob; }
@@ -336,13 +336,13 @@
   <div class="slides" id="slides">
 
     <section class="slide" data-index="0">
-      <p class="slide-text" data-effect="blur-up">
+      <p class="slide-text" data-effect="stretch-y">
         Science Fiction® is a software company turning frontier technology into iconic products.
       </p>
     </section>
 
     <section class="slide" data-index="1">
-      <p class="slide-text" data-effect="blur-up">
+      <p class="slide-text" data-effect="stretch-y">
         A small team of designers &amp; technologists who combine art, science, and internet culture to make the impossible inevitable.
       </p>
     </section>
@@ -356,11 +356,11 @@
     <label>
       Effect
       <select id="ctrl-effect">
-        <option value="blur-up" selected>Blur + Slide Up</option>
+        <option value="blur-up">Blur + Slide Up</option>
         <option value="blur">Blur</option>
         <option value="slide-up">Slide Up</option>
         <option value="blob">Blob Text</option>
-        <option value="stretch-y">Stretch In</option>
+        <option value="stretch-y" selected>Stretch In</option>
       </select>
     </label>
 
@@ -368,42 +368,42 @@
 
     <label>
       Duration
-      <input type="range" id="ctrl-duration" min="80" max="1200" value="540" step="10">
+      <input type="range" id="ctrl-duration" min="80" max="1200" value="760" step="10">
     </label>
-    <span class="value-display" id="val-duration">540ms</span>
+    <span class="value-display" id="val-duration">760ms</span>
 
     <div class="sep"></div>
 
     <label>
       Stagger
-      <input type="range" id="ctrl-stagger" min="0" max="200" value="100" step="5">
+      <input type="range" id="ctrl-stagger" min="0" max="200" value="85" step="5">
     </label>
-    <span class="value-display" id="val-stagger">100ms</span>
+    <span class="value-display" id="val-stagger">85ms</span>
 
     <div class="sep"></div>
 
     <label>
       , Pause
-      <input type="range" id="ctrl-comma-pause" min="0" max="600" value="490" step="10">
+      <input type="range" id="ctrl-comma-pause" min="0" max="600" value="320" step="10">
     </label>
-    <span class="value-display" id="val-comma-pause">490ms</span>
+    <span class="value-display" id="val-comma-pause">320ms</span>
 
     <div class="sep"></div>
 
     <label>
       Easing
       <select id="ctrl-easing">
-        <option value="cubic-bezier(0.16, 1, 0.3, 1)" selected>Expo Out</option>
+        <option value="cubic-bezier(0.16, 1, 0.3, 1)">Expo Out</option>
         <option value="cubic-bezier(0.34, 1.56, 0.64, 1)">Spring</option>
         <option value="cubic-bezier(0.25, 0.1, 0.25, 1)">Ease</option>
         <option value="cubic-bezier(0, 0, 0.2, 1)">Ease Out</option>
         <option value="cubic-bezier(0.4, 0, 1, 1)">Ease In</option>
         <option value="linear">Linear</option>
-        <option value="custom">Custom…</option>
+        <option value="custom" selected>Custom…</option>
       </select>
     </label>
 
-    <input type="text" id="ctrl-custom-easing" placeholder="cubic-bezier(…)" style="display:none; width:160px;">
+    <input type="text" id="ctrl-custom-easing" placeholder="cubic-bezier(…)" value="cubic-bezier(0.87, 0, 0.13, 1)" style="width:160px;">
 
     <span class="ctrl-group" data-for="blur blur-up blob" style="display:contents">
       <div class="sep"></div>
@@ -445,23 +445,23 @@
       <div class="sep"></div>
       <label>
         Stretch
-        <input type="range" id="ctrl-stretch-amount" min="1" max="8" value="3" step="0.1">
+        <input type="range" id="ctrl-stretch-amount" min="1" max="8" value="5.7" step="0.1">
       </label>
-      <span class="value-display" id="val-stretch-amount">3×</span>
+      <span class="value-display" id="val-stretch-amount">5.7×</span>
 
       <div class="sep"></div>
       <label>
         Blur
-        <input type="range" id="ctrl-stretch-blur" min="0" max="24" value="8" step="1">
+        <input type="range" id="ctrl-stretch-blur" min="0" max="24" value="10" step="1">
       </label>
-      <span class="value-display" id="val-stretch-blur">8px</span>
+      <span class="value-display" id="val-stretch-blur">10px</span>
 
       <div class="sep"></div>
       <label style="flex-direction:row;align-items:center;gap:6px;">
-        C1 <input type="color" id="ctrl-stretch-color1" value="#f5d800">
+        C1 <input type="color" id="ctrl-stretch-color1" value="#00ccff">
       </label>
       <label style="flex-direction:row;align-items:center;gap:6px;">
-        C2 <input type="color" id="ctrl-stretch-color2" value="#0057ff">
+        C2 <input type="color" id="ctrl-stretch-color2" value="#ff75e1">
       </label>
     </span>
 
@@ -482,19 +482,19 @@
 
     // ── Config ──
     const config = {
-      effect: 'blur-up',
-      duration: 540,
-      stagger: 100,
-      pauseAfterComma: 490,
-      easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+      effect: 'stretch-y',
+      duration: 760,
+      stagger: 85,
+      pauseAfterComma: 320,
+      easing: 'cubic-bezier(0.87, 0, 0.13, 1)',
       blur: 12,
       translate: 12,
       strokeWidth: 10,
       scaleFrom: 0.75,
-      stretchAmount: 3,
-      stretchBlur: 8,
-      stretchColor1: '#f5d800',
-      stretchColor2: '#0057ff',
+      stretchAmount: 5.7,
+      stretchBlur: 10,
+      stretchColor1: '#00ccff',
+      stretchColor2: '#ff75e1',
       perLetter: false,
     };
 
