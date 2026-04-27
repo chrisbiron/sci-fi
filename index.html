@@ -20,6 +20,12 @@
       font-weight: 400;
       font-style: normal;
     }
+    @font-face {
+      font-family: 'Untitled Sans';
+      src: local('UntitledSans-Medium'), local('Untitled Sans Medium');
+      font-weight: 500;
+      font-style: normal;
+    }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -62,11 +68,11 @@
       top: 20px;
       left: 50%;
       transform: translateX(-50%);
-      z-index: 10;
+      z-index: 201; /* above intro overlay */
       font-size: 20px;
       letter-spacing: 2px;
       line-height: 1;
-      color: var(--color-logo);
+      color: var(--color-bg);
       user-select: none;
       cursor: pointer;
     }
@@ -188,7 +194,7 @@
     .slide-text[data-effect="slide-up"].animating     .word { animation-name: word-slide-up; }
     .slide-text[data-effect="slide-down"].animating   .word { animation-name: word-slide-down; }
     .slide-text[data-effect="blur"].animating         .word { animation-name: word-blur; }
-    .slide-text[data-effect="hue-stretch-y"].animating      .word { animation-name: word-blur-up; }
+    .slide-text[data-effect="blur-up"].animating            .word { animation-name: word-blur-up; }
     .slide-text[data-effect="scale"].animating        .word { animation-name: word-scale; }
     .slide-text[data-effect="skew"].animating         .word { animation-name: word-skew; }
     .slide-text[data-effect="blob"].animating         .word { animation-name: word-blob; }
@@ -226,31 +232,28 @@
     /* ── Dev Sidebar ── */
     #dev-sidebar {
       position: fixed;
-      right: 0;
-      top: 50%;
-      transform: translateY(-50%);
-      display: flex;
-      align-items: center;
+      right: 16px;
+      top: 16px;
       z-index: 100;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       font-size: 11px;
     }
 
     #sidebar-toggle {
+      display: block;
+      margin-left: auto;
       background: var(--color-panel-bg);
       border: 1px solid var(--color-panel-border);
-      border-right: none;
-      border-radius: 8px 0 0 8px;
-      width: 20px;
-      height: 48px;
+      border-radius: 6px;
+      width: 28px;
+      height: 28px;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
       font-size: 14px;
       color: #999;
-      box-shadow: -2px 0 8px rgba(0,0,0,0.06);
-      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
       padding: 0;
       line-height: 1;
       transition: color 0.15s;
@@ -260,14 +263,14 @@
     #sidebar-inner {
       background: var(--color-panel-bg);
       border: 1px solid var(--color-panel-border);
-      border-right: none;
-      border-radius: 12px 0 0 12px;
+      border-radius: 12px;
       padding: 16px;
       width: 210px;
-      max-height: 90vh;
+      max-height: calc(100vh - 60px);
       overflow-y: auto;
-      box-shadow: -4px 0 24px rgba(0,0,0,0.08);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.1);
       scrollbar-width: none;
+      margin-top: 6px;
     }
     #sidebar-inner::-webkit-scrollbar { display: none; }
 
@@ -377,6 +380,80 @@
     }
     #replay-btn:hover, #pause-btn:hover { background: #333; }
 
+    /* ── Intro sequence ── */
+    body.intro-active .logo { opacity: 0 !important; transition: none !important; }
+
+    /* Science→Sci / Fiction→Fi — permanent elements above the overlay */
+    #intro-word-sci,
+    #intro-word-fi {
+      position: fixed;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 201;
+      font-family: 'Untitled Sans', sans-serif;
+      font-weight: 500;
+      font-size: clamp(32px, 5.5vw, 80px);
+      letter-spacing: -0.01em;
+      color: #fff;
+      opacity: 0;
+      filter: blur(16px);
+      white-space: nowrap;
+      pointer-events: none;
+      -webkit-font-smoothing: antialiased;
+      transition: opacity 3s 0.5s ease-in-out, filter 3s 0.5s ease-in-out,
+                  left 0.4s ease-out,
+                  right 0.4s ease-out,
+                  font-size 0.4s ease-out,
+                  color 0.4s ease-out;
+    }
+    #intro-word-sci { left: 50px; }
+    #intro-word-fi  { right: 50px; }
+
+    #intro-word-sci.p1, #intro-word-fi.p1 { opacity: 1; filter: blur(0); }
+    #intro-word-sci.p2 { left: 20px; font-size: 13px; color: var(--color-text); }
+    #intro-word-fi.p2  { font-size: 13px; color: var(--color-text); }
+
+    /* "ence" / "ction" — collapse away during p2 */
+    .intro-drop {
+      display: inline-block;
+      overflow: hidden;
+      max-width: 600px;
+      vertical-align: top;
+      transition: max-width 0.4s ease-out, opacity 0.4s ease-out;
+    }
+    .p2 .intro-drop { max-width: 0; opacity: 0; }
+
+    /* Black overlay — fades out in p2 to reveal page beneath */
+    #intro {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: #000;
+      pointer-events: all;
+      transition: opacity 1s ease;
+    }
+    #intro.p2 { opacity: 0; pointer-events: none; }
+
+    /* PNG sequence canvas — fixed layer above overlay, persists on white page */
+    #intro-logo-large {
+      position: fixed;
+      left: 50%; top: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 201;
+      pointer-events: none;
+      transition: transform 0.4s cubic-bezier(0.45, 0, 0.55, 1);
+    }
+    /* Exit: slide to top of screen + scale down */
+    #intro-logo-large.exit {
+      transform: translate(-50%, calc(-50% - 50vh + 29px)) scale(0.145);
+    }
+
+    #intro-canvas {
+      display: block;
+      width: 255px;
+      height: 127px;
+    }
+
     @media (max-width: 640px) {
       .slide { padding: 80px 24px; }
       .slide-text { font-size: 28px; }
@@ -410,8 +487,8 @@
   </div>
 
   <!-- Floating sidebar (desktop only) -->
-  <div id="dev-sidebar">
-    <button id="sidebar-toggle" aria-label="Toggle controls">›</button>
+  <div id="dev-sidebar" class="closed">
+    <button id="sidebar-toggle" aria-label="Toggle controls">⚙</button>
     <div id="sidebar-inner">
       <div class="sb-section">Anim</div>
 
@@ -420,7 +497,6 @@
         <select id="ctrl-effect">
           <option value="blur-up">Blur + Slide Up</option>
           <option value="blur">Blur</option>
-          <option value="slide-up">Slide Up</option>
           <option value="blob">Blob Text</option>
           <option value="stretch-y">Stretch In</option>
           <option value="hue-stretch-y" selected>Hue Stretch</option>
@@ -432,9 +508,9 @@
       <div class="sb-ctrl">
         <div class="sb-ctrl-header">
           <span class="sb-label">Duration</span>
-          <span class="sb-val" id="val-duration">950ms</span>
+          <span class="sb-val" id="val-duration">500ms</span>
         </div>
-        <input type="range" id="ctrl-duration" min="80" max="1200" value="950" step="10">
+        <input type="range" id="ctrl-duration" min="80" max="1200" value="500" step="10">
       </div>
 
       <div class="sb-ctrl">
@@ -581,6 +657,18 @@
     </div>
   </div>
 
+  <!-- Permanent word elements — live above the overlay, persist after intro -->
+  <div id="intro-word-sci">Sci<span class="intro-drop">ence</span></div>
+  <div id="intro-word-fi">Fi<span class="intro-drop">ction</span></div>
+
+  <!-- Canvas lives above the overlay, persists on the white page -->
+  <div id="intro-logo-large">
+    <canvas id="intro-canvas"></canvas>
+  </div>
+
+  <!-- Intro overlay (removed after animation) -->
+  <div id="intro"></div>
+
   <!-- Bottom controls: always visible -->
   <div id="bottom-btns">
     <button id="pause-btn">⏸ Pause</button>
@@ -591,11 +679,13 @@
     const slides = Array.from(document.querySelectorAll('.slide'));
     const slidesContainer = document.getElementById('slides');
     let currentSlide = 0;
+    let introRunning = true;
+    document.body.classList.add('intro-active');
 
     // ── Config ──
     const config = {
       effect: 'hue-stretch-y',
-      duration: 950,
+      duration: 500,
       stagger: 85,
       pauseAfterComma: 320,
       easing: 'cubic-bezier(0.87, 0, 0.13, 1)',
@@ -874,10 +964,13 @@
       });
     }, { root: slidesContainer, threshold: [0, 0.1, 0.6] });
 
-    slides.forEach(slide => observer.observe(slide));
+    function startObserving() {
+      slides.forEach(slide => observer.observe(slide));
+    }
 
     // ── Click/tap — advance to next slide (ignore clicks on sidebar / bottom btns) ──
     slidesContainer.addEventListener('click', (e) => {
+      if (introRunning) return;
       if (e.target.closest('#dev-sidebar') || e.target.closest('#bottom-btns')) return;
       const next = slides[Math.min(currentSlide + 1, slides.length - 1)];
       next.scrollIntoView({ behavior: 'smooth' });
@@ -885,6 +978,7 @@
 
     // ── Keyboard nav — scroll the container ──
     document.addEventListener('keydown', e => {
+      if (introRunning) return;
       if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
         const next = slides[Math.min(currentSlide + 1, slides.length - 1)];
         next.scrollIntoView({ behavior: 'smooth' });
@@ -895,12 +989,17 @@
     });
 
     // ── Controls ──
+    function replay() {
+      animateIn(slides[currentSlide].querySelector('.slide-text'));
+    }
+
     function bindRange(id, valId, key, unit) {
       const input = document.getElementById(id);
       const display = document.getElementById(valId);
       input.addEventListener('input', () => {
         config[key] = parseFloat(input.value);
         display.textContent = input.value + unit;
+        replay();
       });
     }
 
@@ -913,9 +1012,9 @@
     bindRange('ctrl-scale-from', 'val-scale-from', 'scaleFrom', '');
     bindRange('ctrl-stretch-amount', 'val-stretch-amount', 'stretchAmount', '×');
     bindRange('ctrl-stretch-blur', 'val-stretch-blur', 'stretchBlur', 'px');
-    document.getElementById('ctrl-stretch-color1').addEventListener('input', e => { config.stretchColor1 = e.target.value; });
-    document.getElementById('ctrl-stretch-color2').addEventListener('input', e => { config.stretchColor2 = e.target.value; });
-    document.getElementById('ctrl-hue-color').addEventListener('input', e => { config.hueColor = e.target.value; });
+    document.getElementById('ctrl-stretch-color1').addEventListener('input', e => { config.stretchColor1 = e.target.value; replay(); });
+    document.getElementById('ctrl-stretch-color2').addEventListener('input', e => { config.stretchColor2 = e.target.value; replay(); });
+    document.getElementById('ctrl-hue-color').addEventListener('input', e => { config.hueColor = e.target.value; replay(); });
     bindRange('ctrl-hue-angle', 'val-hue-angle', 'hueAngle', '°');
     bindRange('ctrl-stretch-fade', 'val-stretch-fade', 'stretchFadeDuration', 'ms');
 
@@ -937,11 +1036,13 @@
       } else {
         customEasingInput.style.display = 'none';
         config.easing = e.target.value;
+        replay();
       }
     });
 
     customEasingInput.addEventListener('input', e => {
       config.easing = e.target.value;
+      replay();
     });
 
     const pauseBtn = document.getElementById('pause-btn');
@@ -966,6 +1067,10 @@
         config.stagger = 15;
         document.getElementById('ctrl-stagger').value = 15;
         document.getElementById('val-stagger').textContent = '15ms';
+      } else {
+        config.stagger = 85;
+        document.getElementById('ctrl-stagger').value = 85;
+        document.getElementById('val-stagger').textContent = '85ms';
       }
       rebuildAndReplay();
     });
@@ -981,8 +1086,131 @@
     const sidebarToggle = document.getElementById('sidebar-toggle');
     sidebarToggle.addEventListener('click', () => {
       devSidebar.classList.toggle('closed');
-      sidebarToggle.textContent = devSidebar.classList.contains('closed') ? '‹' : '›';
     });
+
+    // ── PNG sequence config ──
+    // Place frames at site/intro-frames/frame_0001.png, frame_0002.png, …
+    const seqConfig = {
+      frameCount: 240,          // total number of frames
+      fps:        60,           // playback frame rate
+      width:      510,          // native frame width  (@2x → canvas pixel buffer)
+      height:     254,          // native frame height (@2x → canvas pixel buffer)
+      path: i => `./intro-frames/frame_${String(i).padStart(3, '0')}.png`,
+    };
+
+    // Preload all frames; calls onReady(imgArray) when every load/error has settled.
+    function loadFrames(cfg, onReady) {
+      const imgs = new Array(cfg.frameCount);
+      let done = 0;
+      for (let i = 0; i < cfg.frameCount; i++) {
+        const img = new Image();
+        img.onload = img.onerror = () => { if (++done === cfg.frameCount) onReady(imgs); };
+        img.src = cfg.path(i);
+        imgs[i] = img;
+      }
+    }
+
+    // Play preloaded frames on a canvas; calls onExit() at exitMs milliseconds into playback.
+    function playFrames(canvas, imgs, fps, exitMs, onExit) {
+      const ctx = canvas.getContext('2d');
+      const ms  = 1000 / fps;
+      let frame = 0, last = null, start = null, exitFired = false;
+      function tick(now) {
+        if (last === null) { last = now; start = now; }
+        // Fire exit callback at the specified time mark, then keep playing remaining frames
+        if (!exitFired && now - start >= exitMs) {
+          exitFired = true;
+          onExit(); // word transitions + logo exit all start here
+        }
+        if (now - last >= ms) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          if (imgs[frame].naturalWidth) ctx.drawImage(imgs[frame], 0, 0, canvas.width, canvas.height);
+          last += ms;
+          if (++frame >= imgs.length) return;
+        }
+        requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }
+
+    // ── Intro sequence ──
+    function runIntro() {
+      const intro   = document.getElementById('intro');
+      const logo    = document.querySelector('.logo');
+      const wordSci = document.getElementById('intro-word-sci');
+      const wordFi  = document.getElementById('intro-word-fi');
+
+      if (!intro) { introRunning = false; startObserving(); return; }
+
+      // Switch #intro-word-fi from right-anchored to left-anchored at the same visual position.
+      // "Fi" sits at the LEFT of the element; left-anchoring means the right side ("ction") can
+      // collapse without ever moving "Fi".
+      const fiRect = wordFi.getBoundingClientRect();
+      wordFi.style.right = 'auto';
+      wordFi.style.left = fiRect.left + 'px';
+
+      // Pre-measure "Fi" at its final 13px size to compute the exact target left.
+      const probe = document.createElement('span');
+      probe.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;font-family:inherit;font-size:13px;font-weight:500;white-space:nowrap;letter-spacing:-0.01em;';
+      probe.textContent = 'Fi';
+      document.body.appendChild(probe);
+      const fiW = probe.offsetWidth;
+      probe.remove();
+      // Right-edge of "Fi" should land at 20px from right → left = viewport - 20 - fiW
+      const fiTargetLeft = window.innerWidth - 20 - fiW;
+
+      // Set up canvas dimensions
+      const canvas = document.getElementById('intro-canvas');
+      canvas.width  = seqConfig.width;
+      canvas.height = seqConfig.height;
+
+      // Phase 2 fires at the 5.6s mark — canvas exits upward, overlay fades, words move to edges.
+      // All visual mutations are batched into a single rAF so they land in exactly one paint.
+      function triggerPhase2() {
+        requestAnimationFrame(() => {
+          document.getElementById('intro-logo-large').classList.add('exit');
+          wordSci.classList.add('p2');
+          wordFi.classList.add('p2');
+          wordFi.style.left = fiTargetLeft + 'px';
+          intro.classList.add('p2');
+          logo.style.transition = 'opacity 0.6s ease 0.1s';
+          logo.style.opacity = '1';
+        });
+
+        setTimeout(() => {
+          document.body.classList.remove('intro-active');
+          introRunning = false;
+          startObserving();
+        }, 400);
+
+        setTimeout(() => intro.remove(), 1100);
+      }
+
+      // Preload frames in parallel with the initial fade-in delay.
+      let framesReady = false, p1Active = false;
+      let readyFrames = null;
+
+      function maybePlay() {
+        if (framesReady && p1Active) playFrames(canvas, readyFrames, seqConfig.fps, 3600, triggerPhase2);
+      }
+
+      loadFrames(seqConfig, imgs => {
+        framesReady = true;
+        readyFrames = imgs;
+        maybePlay();
+      });
+
+      // Phase 1: blur-fade in "Science" / "Fiction" + canvas on black (t=300ms)
+      setTimeout(() => {
+        intro.classList.add('p1');
+        wordSci.classList.add('p1');
+        wordFi.classList.add('p1');
+        p1Active = true;
+        maybePlay();
+      }, 300);
+    }
+
+    runIntro();
   </script>
 </body>
 </html>
