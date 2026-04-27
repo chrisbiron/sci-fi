@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Science Fiction</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
   <link rel="preload" href="./fonts/Rhymes Text Medium.woff2" as="font" type="font/woff2" crossorigin>
   <style>
     @font-face {
@@ -31,20 +32,37 @@
 
     :root {
       --color-bg: #ffffff;
-      --color-text: #0a0a0a;
-      --color-logo: #0a0a0a;
+      --color-text: #000000;
+      --color-logo: #0000000a0a0a;
       --color-panel-bg: rgba(255,255,255,0.96);
       --color-panel-border: #e0e0e0;
       color-scheme: light;
     }
 
     html.dark {
-      --color-bg: #0a0a0a;
+      --color-bg: #000000;
       --color-text: #ffffff;
       --color-logo: #ffffff;
       --color-panel-bg: rgba(20,20,20,0.96);
       --color-panel-border: #333;
       color-scheme: dark;
+    }
+
+    @supports (color: color(display-p3 0 0 0)) {
+      :root {
+        --color-bg: color(display-p3 1 1 1);
+        --color-text: color(display-p3 0 0 0);
+        --color-logo: color(display-p3 0 0 0);
+        --color-panel-bg: color(display-p3 1 1 1 / 0.96);
+        --color-panel-border: color(display-p3 0.878 0.878 0.878);
+      }
+      html.dark {
+        --color-bg: color(display-p3 0 0 0);
+        --color-text: color(display-p3 1 1 1);
+        --color-logo: color(display-p3 1 1 1);
+        --color-panel-bg: color(display-p3 0.078 0.078 0.078 / 0.96);
+        --color-panel-border: color(display-p3 0.2 0.2 0.2);
+      }
     }
 
     html, body {
@@ -207,9 +225,9 @@
 
     /* Effect: stretch-y — scaleY + blur in, color1→color2 during animation, color2→black after */
     @keyframes word-stretch-y {
-      from { opacity: 0; transform: scaleY(var(--stretch-amount, 3)); filter: blur(var(--stretch-blur, 8px)); color: var(--stretch-color1, #00ccff); }
-      20%  { color: var(--stretch-color1, #00ccff); }
-      to   { opacity: 1; transform: scaleY(1); filter: blur(0); color: var(--stretch-color2, #ff75e1); }
+      from { opacity: 0; transform: scaleY(var(--stretch-amount, 3)); filter: blur(var(--stretch-blur, 8px)); color: var(--stretch-color1, #00ccff); color: var(--stretch-color1, color(display-p3 0 0.84 1)); }
+      20%  { color: var(--stretch-color1, #00ccff); color: var(--stretch-color1, color(display-p3 0 0.84 1)); }
+      to   { opacity: 1; transform: scaleY(1); filter: blur(0); color: var(--stretch-color2, #ff75e1); color: var(--stretch-color2, color(display-p3 1 0.46 0.89)); }
     }
 
     .slide-text[data-effect="stretch-y"].animating .word {
@@ -219,8 +237,8 @@
 
     /* Effect: hue-stretch-y — same stretch but color stays constant; hue-rotate spins across full animation */
     @keyframes word-hue-stretch-y {
-      from { opacity: 0; transform: scaleY(var(--stretch-amount, 3)); filter: blur(var(--stretch-blur, 8px)) hue-rotate(var(--hue-angle, 180deg)); color: var(--hue-color, #00ccff); }
-      to   { opacity: 1; transform: scaleY(1); filter: blur(0) hue-rotate(0deg); color: var(--hue-color, #00ccff); }
+      from { opacity: 0; transform: scaleY(var(--stretch-amount, 3)); filter: blur(var(--stretch-blur, 8px)) hue-rotate(var(--hue-angle, 180deg)); color: var(--hue-color, #000ff1); color: var(--hue-color, color(display-p3 0 0.059 0.945)); }
+      to   { opacity: 1; transform: scaleY(1); filter: blur(0) hue-rotate(0deg); color: var(--hue-color, #000ff1); color: var(--hue-color, color(display-p3 0 0.059 0.945)); }
     }
 
     .slide-text[data-effect="hue-stretch-y"].animating .word {
@@ -253,12 +271,14 @@
       cursor: pointer;
       font-size: 14px;
       color: #999;
+      color: color(display-p3 0.6 0.6 0.6);
       box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      box-shadow: 0 2px 8px color(display-p3 0 0 0 / 0.08);
       padding: 0;
       line-height: 1;
       transition: color 0.15s;
     }
-    #sidebar-toggle:hover { color: #444; }
+    #sidebar-toggle:hover { color: #444; color: color(display-p3 0.267 0.267 0.267); }
 
     #sidebar-inner {
       background: var(--color-panel-bg);
@@ -269,6 +289,7 @@
       max-height: calc(100vh - 60px);
       overflow-y: auto;
       box-shadow: 0 4px 24px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 24px color(display-p3 0 0 0 / 0.1);
       scrollbar-width: none;
       margin-top: 6px;
     }
@@ -282,6 +303,7 @@
       text-transform: uppercase;
       letter-spacing: 0.08em;
       color: #aaa;
+      color: color(display-p3 0.667 0.667 0.667);
       font-weight: 600;
       margin-bottom: 12px;
     }
@@ -300,11 +322,13 @@
       text-transform: uppercase;
       letter-spacing: 0.06em;
       color: #888;
+      color: color(display-p3 0.533 0.533 0.533);
     }
 
     .sb-val {
       font-size: 11px;
       color: #333;
+      color: color(display-p3 0.2 0.2 0.2);
       font-variant-numeric: tabular-nums;
     }
 
@@ -326,6 +350,7 @@
       display: block;
       cursor: pointer;
       accent-color: #0a0a0a;
+      accent-color: color(display-p3 0.039 0.039 0.039);
       margin: 0;
     }
 
@@ -333,12 +358,15 @@
     #sidebar-inner input[type="text"] {
       width: 100%;
       border: 1px solid #ddd;
+      border-color: color(display-p3 0.867 0.867 0.867);
       border-radius: 5px;
       padding: 4px 7px;
       font-size: 11px;
       font-family: inherit;
       color: #222;
+      color: color(display-p3 0.133 0.133 0.133);
       background: #fff;
+      background: color(display-p3 1 1 1);
       cursor: pointer;
       box-sizing: border-box;
     }
@@ -348,37 +376,32 @@
       height: 22px;
       padding: 1px 2px;
       border: 1px solid #ddd;
+      border-color: color(display-p3 0.867 0.867 0.867);
       border-radius: 4px;
       cursor: pointer;
       background: white;
+      background: color(display-p3 1 1 1);
     }
 
     /* ctrl-group divs hidden by default; shown by updatePanelForEffect */
     .ctrl-group { display: none; }
 
-    /* ── Bottom buttons ── */
-    #bottom-btns {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 100;
-      display: flex;
-      gap: 8px;
-    }
-
-    #replay-btn, #pause-btn {
+    /* ── Sidebar action buttons (Pause / Replay) ── */
+    .sb-action-btn {
+      flex: 1;
       background: #0a0a0a;
+      background: color(display-p3 0.039 0.039 0.039);
       color: #fff;
+      color: color(display-p3 1 1 1);
       border: none;
       border-radius: 6px;
-      padding: 5px 12px;
+      padding: 5px 8px;
       font-size: 11px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       cursor: pointer;
       letter-spacing: 0.03em;
     }
-    #replay-btn:hover, #pause-btn:hover { background: #333; }
+    .sb-action-btn:hover { background: #333; background: color(display-p3 0.2 0.2 0.2); }
 
     /* ── Intro sequence ── */
     body.intro-active .logo { opacity: 0 !important; transition: none !important; }
@@ -395,6 +418,7 @@
       font-size: clamp(40px, 5.5vw, 80px);
       letter-spacing: -0.01em;
       color: #fff;
+      color: color(display-p3 1 1 1);
       opacity: 0;
       filter: blur(16px);
       white-space: nowrap;
@@ -425,35 +449,62 @@
 
     /* Mobile: words exit outward instead of collapsing to Sci/Fi */
     @media (max-width: 640px) {
-      #intro-word-sci,
-      #intro-word-fi {
-        transition: opacity 3s 0.5s ease-in-out, filter 3s 0.5s ease-in-out,
+      #intro-word-sci { left: 24px; }
+      #intro-word-fi  { right: 24px; }
+      /* Override desktop p2 — keep same size, slide + fade out */
+      #intro-word-sci.p2 {
+        font-size: clamp(40px, 5.5vw, 80px);
+        color: #fff;
+        color: color(display-p3 1 1 1);
+        opacity: 0;
+        transform: translateY(-50px);
+        filter: blur(8px);
+        visibility: hidden;
+        transition: opacity 0.4s ease-in-out, filter 0.4s ease-in-out,
                     left 0.4s ease-in-out,
                     right 0.4s ease-in-out,
                     transform 0.4s ease-in-out,
                     font-size 0.4s ease-in-out,
                     color 0.4s ease-in-out;
       }
-      #intro-word-sci { left: 24px; }
-      #intro-word-fi  { right: 24px; }
-      /* Override desktop p2 — keep same size, slide + fade out */
-      #intro-word-sci.p2 {
-        left: 24px;
-        font-size: clamp(40px, 5.5vw, 80px);
-        color: #fff;
-        opacity: 0;
-        transform: translateY(-50%) translateX(-40px);
-        filter: blur(8px);
-      }
       #intro-word-fi.p2 {
         font-size: clamp(40px, 5.5vw, 80px);
         color: #fff;
+        color: color(display-p3 1 1 1);
         opacity: 0;
-        transform: translateY(-50%) translateX(40px);
+        transform: translateY(-50px);
         filter: blur(8px);
+        visibility: hidden;
+        transition: opacity 0.4s ease-in-out, filter 0.4s ease-in-out,
+                    left 0.4s ease-in-out,
+                    right 0.4s ease-in-out,
+                    transform 0.4s ease-in-out,
+                    font-size 0.4s ease-in-out,
+                    color 0.4s ease-in-out;
       }
       /* Don't collapse intro-drop on mobile — whole word exits together */
       .p2 .intro-drop { max-width: 600px; opacity: 1; }
+    }
+
+    /* Slide 5: inverted background — black in light mode, white in dark mode */
+    .slide[data-index="5"] {
+      background: var(--color-text);
+    }
+
+    /* Expanded intro words (slide 5) — overrides p2 to show full Science / Fiction */
+    #intro-word-sci.expanded {
+      left: 50px;
+      font-size: clamp(40px, 5.5vw, 80px);
+      color: var(--color-bg);
+    }
+    #intro-word-fi.expanded {
+      font-size: clamp(40px, 5.5vw, 80px);
+      color: var(--color-bg);
+    }
+    /* Re-reveal the collapsed suffix spans */
+    .p2.expanded .intro-drop {
+      max-width: 600px;
+      opacity: 1;
     }
 
     /* Black overlay — fades out in p2 to reveal page beneath */
@@ -462,6 +513,7 @@
       inset: 0;
       z-index: 200;
       background: #000;
+      background: color(display-p3 0 0 0);
       pointer-events: all;
       transition: opacity 1s ease;
     }
@@ -491,7 +543,6 @@
       .slide { padding: 80px 24px; }
       .slide-text { font-size: 28px; }
       #dev-sidebar { display: none; }
-      #bottom-btns { display: none; }
     }
   </style>
 </head>
@@ -515,6 +566,28 @@
       <p class="slide-text" data-effect="hue-stretch-y">
         A small team of designers &amp; technologists who combine art, science, and internet culture to make the impossible inevitable.
       </p>
+    </section>
+
+    <section class="slide" data-index="2">
+      <p class="slide-text" data-effect="hue-stretch-y">
+        Jobs
+      </p>
+    </section>
+
+    <section class="slide" data-index="3">
+      <p class="slide-text" data-effect="hue-stretch-y">
+        Press
+      </p>
+    </section>
+
+    <section class="slide" data-index="4">
+      <p class="slide-text" data-effect="hue-stretch-y">
+        Blog
+      </p>
+    </section>
+
+    <section class="slide" data-index="5">
+      <!-- No slide-text: Science/Fiction word elements expand to fill this slide -->
     </section>
 
   </div>
@@ -659,7 +732,7 @@
       <div class="ctrl-group" data-for="hue-stretch-y">
         <div class="sb-row">
           <span class="sb-label">Color</span>
-          <input type="color" id="ctrl-hue-color" value="#d52fc0">
+          <input type="color" id="ctrl-hue-color" value="#000ff1">
         </div>
         <div class="sb-ctrl">
           <div class="sb-ctrl-header">
@@ -687,6 +760,13 @@
         <span class="sb-label" style="flex:1;">Per Letter</span>
         <input type="checkbox" id="ctrl-per-letter">
       </div>
+
+      <hr class="sb-div">
+
+      <div class="sb-row" style="margin-bottom:0; gap:6px;">
+        <button id="pause-btn" class="sb-action-btn">⏸ Pause</button>
+        <button id="replay-btn" class="sb-action-btn">↺ Replay</button>
+      </div>
     </div>
   </div>
 
@@ -702,13 +782,7 @@
   <!-- Intro overlay (removed after animation) -->
   <div id="intro"></div>
 
-  <!-- Bottom controls: always visible -->
-  <div id="bottom-btns">
-    <button id="pause-btn">⏸ Pause</button>
-    <button id="replay-btn">↺ Replay</button>
-  </div>
-
-  <script>
+<script>
     const slides = Array.from(document.querySelectorAll('.slide'));
     const slidesContainer = document.getElementById('slides');
     let currentSlide = 0;
@@ -718,20 +792,20 @@
     // ── Config ──
     const config = {
       effect: 'hue-stretch-y',
-      duration: 500,
-      stagger: 85,
+      duration: 420,
+      stagger: 60,
       pauseAfterComma: 320,
       easing: 'cubic-bezier(0.87, 0, 0.13, 1)',
       blur: 12,
       translate: 12,
       strokeWidth: 10,
       scaleFrom: 0.75,
-      stretchAmount: 2.4,
+      stretchAmount: 3,
       stretchBlur: 6,
-      stretchColor1: '#00ccff',
-      stretchColor2: '#ff75e1',
+      stretchColor1: CSS.supports('color', 'color(display-p3 0 0 0)') ? 'color(display-p3 0 0.84 1)' : '#00ccff',
+      stretchColor2: CSS.supports('color', 'color(display-p3 0 0 0)') ? 'color(display-p3 1 0.46 0.89)' : '#ff75e1',
       stretchFadeDuration: 1600,
-      hueColor: '#d52fc0',
+      hueColor: CSS.supports('color', 'color(display-p3 0 0 0)') ? 'color(display-p3 0 0.059 0.945)' : '#000ff1',
       hueAngle: 250,
       perLetter: false,
     };
@@ -987,12 +1061,16 @@
     // ── IntersectionObserver — animate in on enter, reset on exit ──
     const observer = new IntersectionObserver(entries => {
       entries.forEach(entry => {
-        const textEl = entry.target.querySelector('.slide-text');
+        const slide   = entry.target;
+        const slideIdx = parseInt(slide.dataset.index);
+        const textEl  = slide.querySelector('.slide-text');
         if (entry.intersectionRatio >= 0.6) {
-          currentSlide = slides.indexOf(entry.target);
-          animateIn(textEl);
+          currentSlide = slides.indexOf(slide);
+          if (textEl) animateIn(textEl);
+          if (slideIdx === 5) expandIntroWords();
         } else if (entry.intersectionRatio < 0.1) {
-          textEl.classList.remove('animating');
+          if (textEl) textEl.classList.remove('animating');
+          if (slideIdx === 5) collapseIntroWords();
         }
       });
     }, { root: slidesContainer, threshold: [0, 0.1, 0.6] });
@@ -1004,7 +1082,7 @@
     // ── Click/tap — advance to next slide (ignore clicks on sidebar / bottom btns) ──
     slidesContainer.addEventListener('click', (e) => {
       if (introRunning) return;
-      if (e.target.closest('#dev-sidebar') || e.target.closest('#bottom-btns')) return;
+      if (e.target.closest('#dev-sidebar')) return;
       const next = slides[Math.min(currentSlide + 1, slides.length - 1)];
       next.scrollIntoView({ behavior: 'smooth' });
     });
@@ -1123,6 +1201,55 @@
 
     // ── PNG sequence config ──
     // Place frames at site/intro-frames/frame_0001.png, frame_0002.png, …
+    // ── Module-level intro-word state (set by runIntro, used by observer + expand/collapse) ──
+    let introWordSci = null;
+    let introWordFi  = null;
+    let introFiW     = 0;   // width of "Fi" at 13px
+    let wordsExpanded = false;
+
+    function onFiResize() {
+      if (!introWordFi || window.innerWidth <= 640 || wordsExpanded) return;
+      introWordFi.style.transition = 'none';
+      introWordFi.style.left = (window.innerWidth - 20 - introFiW) + 'px';
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        introWordFi.style.transition = '';
+      }));
+    }
+
+    function expandIntroWords() {
+      if (!introWordSci || !introWordFi || wordsExpanded) return;
+      if (window.innerWidth <= 640) return;
+      window.removeEventListener('resize', onFiResize);
+      // Switch Fi: inline left → inline right (at current visual position), then animate to 50px
+      const rect = introWordFi.getBoundingClientRect();
+      introWordFi.style.transition = 'none';
+      introWordFi.style.left = 'auto';
+      introWordFi.style.right = (window.innerWidth - rect.right) + 'px';
+      introWordFi.offsetWidth; // force reflow
+      introWordFi.style.transition = '';
+      introWordFi.style.right = '50px';
+      introWordSci.classList.add('expanded');
+      introWordFi.classList.add('expanded');
+      wordsExpanded = true;
+    }
+
+    function collapseIntroWords() {
+      if (!introWordSci || !introWordFi || !wordsExpanded) return;
+      if (window.innerWidth <= 640) return;
+      // Switch Fi: inline right → inline left (at current visual position), then animate to p2 target
+      const rect = introWordFi.getBoundingClientRect();
+      introWordFi.style.transition = 'none';
+      introWordFi.style.right = 'auto';
+      introWordFi.style.left = rect.left + 'px';
+      introWordFi.offsetWidth; // force reflow
+      introWordFi.style.transition = '';
+      introWordFi.style.left = (window.innerWidth - 20 - introFiW) + 'px';
+      introWordSci.classList.remove('expanded');
+      introWordFi.classList.remove('expanded');
+      window.addEventListener('resize', onFiResize);
+      wordsExpanded = false;
+    }
+
     const seqConfig = {
       frameCount: 240,          // total number of frames
       fps:        60,           // playback frame rate
@@ -1170,24 +1297,17 @@
     function runIntro() {
       const intro   = document.getElementById('intro');
       const logo    = document.querySelector('.logo');
-      const wordSci = document.getElementById('intro-word-sci');
-      const wordFi  = document.getElementById('intro-word-fi');
+      const wordSci = introWordSci = document.getElementById('intro-word-sci');
+      const wordFi  = introWordFi  = document.getElementById('intro-word-fi');
 
       if (!intro) { introRunning = false; startObserving(); return; }
 
-      // Switch #intro-word-fi from right-anchored to left-anchored at the same visual position.
-      // "Fi" sits at the LEFT of the element; left-anchoring means the right side ("ction") can
-      // collapse without ever moving "Fi".
-      const fiRect = wordFi.getBoundingClientRect();
-      wordFi.style.right = 'auto';
-      wordFi.style.left = fiRect.left + 'px';
-
-      // Pre-measure "Fi" at its final 13px size to compute the exact target left.
+      // Pre-measure "Fi" at its final 13px size (used post-p2 for resize updates).
       const probe = document.createElement('span');
       probe.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;font-family:inherit;font-size:13px;font-weight:500;white-space:nowrap;letter-spacing:-0.01em;';
       probe.textContent = 'Fi';
       document.body.appendChild(probe);
-      const fiW = probe.offsetWidth;
+      introFiW = probe.offsetWidth;
       probe.remove();
 
       // Set up canvas dimensions
@@ -1195,41 +1315,35 @@
       canvas.width  = seqConfig.width;
       canvas.height = seqConfig.height;
 
-      // Track which phase we're in so the resize handler knows what to do.
-      let phase2Fired = false;
       const isMobile = () => window.innerWidth <= 640;
 
-      // Reposition #intro-word-fi on resize (wordSci is CSS-only and handles itself).
-      // On mobile the words exit entirely so no repositioning is needed.
-      // Suppress the CSS transition during resize so it snaps immediately.
-      function onResize() {
-        if (isMobile()) return;
-        wordFi.style.transition = 'none';
-        if (phase2Fired) {
-          wordFi.style.left = (window.innerWidth - 20 - fiW) + 'px';
-        } else {
-          // In p1: keep "Fiction" right-edge 50px from right.
-          wordFi.style.left = (window.innerWidth - 50 - wordFi.offsetWidth) + 'px';
-        }
-        // Restore transitions after two rAFs (one to apply the position, one to re-enable).
-        requestAnimationFrame(() => requestAnimationFrame(() => {
-          wordFi.style.transition = '';
-        }));
-      }
-      window.addEventListener('resize', onResize);
-
       // Phase 2 fires at the 3.6s mark — canvas exits upward, overlay fades, words move to edges.
-      // All visual mutations are batched into a single rAF so they land in exactly one paint.
+      // All DOM mutations are batched into a single rAF to land in one paint.
       function triggerPhase2() {
-        phase2Fired = true;
-        // Recalculate fiTargetLeft using current viewport width at fire time.
-        // On mobile the words exit outward via CSS alone — no left repositioning needed.
-        const fiTargetLeft = isMobile() ? null : (window.innerWidth - 20 - fiW);
+        const mobile = isMobile();
+        const fiTargetLeft = mobile ? null : (window.innerWidth - 20 - introFiW);
+
         requestAnimationFrame(() => {
+          if (!mobile) {
+            // Switch wordFi from CSS right-anchoring to left-anchoring at its CURRENT pixel
+            // position — this must happen before .p2 collapses .intro-drop, otherwise the
+            // right-anchored shrink would drag "Fi" rightward (the jump bug).
+            const rect = wordFi.getBoundingClientRect();
+            wordFi.style.transition = 'none';
+            wordFi.style.right = 'auto';
+            wordFi.style.left = rect.left + 'px';
+            wordFi.offsetWidth; // force reflow — commits position + transition:none together
+            wordFi.style.transition = ''; // re-enable CSS transition for the animated move
+          }
+
           document.getElementById('intro-logo-large').classList.add('exit');
           wordSci.classList.add('p2');
           wordFi.classList.add('p2');
-          if (fiTargetLeft !== null) wordFi.style.left = fiTargetLeft + 'px';
+          if (fiTargetLeft !== null) {
+            wordFi.style.left = fiTargetLeft + 'px';
+            // Start listening for resizes now that left is JS-controlled
+            window.addEventListener('resize', onFiResize);
+          }
           intro.classList.add('p2');
           logo.style.transition = 'opacity 0.6s ease 0.1s';
           logo.style.opacity = '1';
@@ -1241,10 +1355,7 @@
           startObserving();
         }, 400);
 
-        setTimeout(() => {
-          window.removeEventListener('resize', onResize);
-          intro.remove();
-        }, 1100);
+        setTimeout(() => intro.remove(), 1100);
       }
 
       // Preload frames in parallel with the initial fade-in delay.
