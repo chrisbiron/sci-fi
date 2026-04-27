@@ -392,7 +392,7 @@
       z-index: 201;
       font-family: 'Untitled Sans', sans-serif;
       font-weight: 500;
-      font-size: clamp(32px, 5.5vw, 80px);
+      font-size: clamp(40px, 5.5vw, 80px);
       letter-spacing: -0.01em;
       color: #fff;
       opacity: 0;
@@ -422,6 +422,39 @@
       transition: max-width 0.4s ease-in-out, opacity 0.4s ease-in-out;
     }
     .p2 .intro-drop { max-width: 0; opacity: 0; }
+
+    /* Mobile: words exit outward instead of collapsing to Sci/Fi */
+    @media (max-width: 640px) {
+      #intro-word-sci,
+      #intro-word-fi {
+        transition: opacity 3s 0.5s ease-in-out, filter 3s 0.5s ease-in-out,
+                    left 0.4s ease-in-out,
+                    right 0.4s ease-in-out,
+                    transform 0.4s ease-in-out,
+                    font-size 0.4s ease-in-out,
+                    color 0.4s ease-in-out;
+      }
+      #intro-word-sci { left: 24px; }
+      #intro-word-fi  { right: 24px; }
+      /* Override desktop p2 — keep same size, slide + fade out */
+      #intro-word-sci.p2 {
+        left: 24px;
+        font-size: clamp(40px, 5.5vw, 80px);
+        color: #fff;
+        opacity: 0;
+        transform: translateY(-50%) translateX(-40px);
+        filter: blur(8px);
+      }
+      #intro-word-fi.p2 {
+        font-size: clamp(40px, 5.5vw, 80px);
+        color: #fff;
+        opacity: 0;
+        transform: translateY(-50%) translateX(40px);
+        filter: blur(8px);
+      }
+      /* Don't collapse intro-drop on mobile — whole word exits together */
+      .p2 .intro-drop { max-width: 600px; opacity: 1; }
+    }
 
     /* Black overlay — fades out in p2 to reveal page beneath */
     #intro {
@@ -1164,12 +1197,14 @@
 
       // Track which phase we're in so the resize handler knows what to do.
       let phase2Fired = false;
+      const isMobile = () => window.innerWidth <= 640;
 
       // Reposition #intro-word-fi on resize (wordSci is CSS-only and handles itself).
+      // On mobile the words exit entirely so no repositioning is needed.
       // Suppress the CSS transition during resize so it snaps immediately.
       function onResize() {
-        const noTransition = 'transition: none !important';
-        wordFi.style.cssText += '; transition: none';
+        if (isMobile()) return;
+        wordFi.style.transition = 'none';
         if (phase2Fired) {
           wordFi.style.left = (window.innerWidth - 20 - fiW) + 'px';
         } else {
@@ -1188,12 +1223,13 @@
       function triggerPhase2() {
         phase2Fired = true;
         // Recalculate fiTargetLeft using current viewport width at fire time.
-        const fiTargetLeft = window.innerWidth - 20 - fiW;
+        // On mobile the words exit outward via CSS alone — no left repositioning needed.
+        const fiTargetLeft = isMobile() ? null : (window.innerWidth - 20 - fiW);
         requestAnimationFrame(() => {
           document.getElementById('intro-logo-large').classList.add('exit');
           wordSci.classList.add('p2');
           wordFi.classList.add('p2');
-          wordFi.style.left = fiTargetLeft + 'px';
+          if (fiTargetLeft !== null) wordFi.style.left = fiTargetLeft + 'px';
           intro.classList.add('p2');
           logo.style.transition = 'opacity 0.6s ease 0.1s';
           logo.style.opacity = '1';
