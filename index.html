@@ -307,6 +307,74 @@
       animation-name: word-hue-stretch-y-2;
     }
 
+    /* ── Press list (slide 3) ── */
+    .press-list {
+      display: flex;
+      flex-direction: column;
+      gap: 40px;
+      align-items: center;
+      text-align: center;
+      max-width: 900px;
+    }
+    .press-item {
+      opacity: 0;
+      display: block;
+      text-decoration: none;
+      color: var(--color-text);
+    }
+    .press-outlet {
+      font-family: 'Untitled Sans', sans-serif;
+      font-weight: 500;
+      font-size: 14px;
+      letter-spacing: -0.01em;
+      color: var(--color-text);
+      margin-bottom: 6px;
+      -webkit-font-smoothing: antialiased;
+    }
+    .press-headline {
+      font-family: 'Times New Roman', Times, serif;
+      font-size: 28px;
+      line-height: 1.2;
+      letter-spacing: -0.005em;
+      color: inherit;
+    }
+    /* Settled (post-animation) state — enables hover transitions */
+    .press-list.settled .press-item {
+      opacity: 1;
+      color: var(--color-text);
+      transition: opacity 0.3s ease-in-out, color 0.3s ease-in-out, filter 0.3s ease-in-out;
+    }
+    .press-list.settled .press-item .press-outlet,
+    .press-list.settled .press-item .press-headline {
+      color: inherit;
+      filter: hue-rotate(var(--hue-angle, -250deg))
+    }
+    .press-list.settled:has(.press-item:hover) .press-item:not(:hover) {
+      opacity: 0.2;
+    }
+    .press-list.settled .press-item:hover {
+      transition: opacity 0.3s ease-out, color 0.3s ease-out, filter 0.3s ease-out;
+      opacity: 1;
+      color: var(--hue-color, #d52fc0);
+      filter: hue-rotate(var(--hue-angle, 0deg));
+    }
+    @keyframes press-item-hue {
+      0%   { opacity: 0; transform: scaleY(var(--stretch-amount, 2.4)); filter: blur(var(--stretch-blur, 6px)) hue-rotate(var(--hue-angle, 250deg)); color: var(--hue-color, #d52fc0); }
+      50%  { color: var(--hue-color, #d52fc0); }
+      100% { opacity: 1; transform: scaleY(1); filter: blur(0) hue-rotate(0deg); color: var(--color-text); }
+    }
+    .press-list.animating .press-item {
+      transform-origin: center top;
+      animation-name: press-item-hue;
+      animation-fill-mode: both;
+      animation-timing-function: var(--easing, cubic-bezier(0.87, 0, 0.13, 1));
+      animation-duration: var(--duration, 500ms);
+    }
+    .press-list.animating .press-item .press-outlet,
+    .press-list.animating .press-item .press-headline {
+      color: inherit;
+    }
+
 
     /* ── Dev Sidebar ── */
     #dev-sidebar {
@@ -620,6 +688,8 @@
     @media (max-width: 640px) {
       .slide { padding: 80px 24px; }
       .slide-text { font-size: 28px; }
+      .press-list { gap: 22px; }
+      .press-headline { font-size: 22px; }
       #dev-sidebar { display: none; }
     }
 
@@ -749,15 +819,24 @@
     </section>
 
     <section class="slide" data-index="3">
-      <p class="slide-text" data-effect="hue-stretch-y">
-        Press
-      </p>
-    </section>
-
-    <section class="slide" data-index="4">
-      <p class="slide-text" data-effect="hue-stretch-y">
-        Blog
-      </p>
+      <div class="press-list">
+        <a class="press-item" href="https://www.forbes.com/video/52f07435-2a33-4e5c-8cad-cb748f8f05b8/how-two-brothers-raised-42-million-for-a-social-media-startup-rooted-in-nostalgia/" target="_blank" rel="noopener">
+          <div class="press-outlet">Forbes</div>
+          <div class="press-headline">&ldquo;Two Brothers Raised $42 Million for A Social Media Startup&rdquo;</div>
+        </a>
+        <a class="press-item" href="https://www.nytimes.com/2023/10/31/style/lapse-photo-app.html" target="_blank" rel="noopener">
+          <div class="press-outlet">NY Times</div>
+          <div class="press-headline">&ldquo;The Hot New Thing in Social Media Is Here&rdquo;</div>
+        </a>
+        <a class="press-item" href="https://time.com/6334440/lapse-photo-app-instagram/" target="_blank" rel="noopener">
+          <div class="press-outlet">Time Magazine</div>
+          <div class="press-headline">&ldquo;The Anti-Instagram&rdquo;</div>
+        </a>
+        <a class="press-item" href="https://sifted.eu/articles/lapse-series-a-30m" target="_blank" rel="noopener">
+          <div class="press-outlet">Sifted</div>
+          <div class="press-headline">&ldquo;Ex-Pinterest and Snap execs back alternative social app&rdquo;</div>
+        </a>
+      </div>
     </section>
 
     <!-- Loop sentinel: snapping to this jumps back to slide 0 -->
@@ -962,8 +1041,9 @@
     <canvas id="intro-canvas"></canvas>
   </div>
 
-  <!-- Butterfly video source for dither background -->
-  <video id="butterfly-video" src="./butterfly.mp4" muted loop playsinline style="display:none"></video>
+  <!-- Video sources for dither background -->
+  <video id="dither-video-eye"       src="./eye.mp4"       muted loop playsinline style="display:none"></video>
+  <video id="dither-video-butterfly" src="./butterfly.mp4" muted loop playsinline style="display:none"></video>
 
   <!-- Dither background — fixed behind intro overlay, fades out on collapse -->
   <canvas id="dither-bg" aria-hidden="true"></canvas>
@@ -975,6 +1055,13 @@
       <button class="dp-toggle">▾</button>
     </div>
     <div class="dp-body">
+    <div class="dp-ctrl">
+      <div class="dp-row"><span class="dp-label">Source</span></div>
+      <select id="ctrl-dither-source">
+        <option value="eye" selected>Eye</option>
+        <option value="butterfly">Butterfly</option>
+      </select>
+    </div>
     <div class="dp-ctrl">
       <div class="dp-row"><span class="dp-label">Grid Scale</span><span class="dp-val" id="val-dither-cell">7px</span></div>
       <input type="range" id="ctrl-dither-cell" min="4" max="32" value="7" step="1">
@@ -1000,16 +1087,16 @@
       <input type="range" id="ctrl-dither-t2" min="0" max="1" value="0.71" step="0.01">
     </div>
     <div class="dp-ctrl">
-      <div class="dp-row"><span class="dp-label">T3 Sparse</span><span class="dp-val" id="val-dither-t3">0.55</span></div>
-      <input type="range" id="ctrl-dither-t3" min="0" max="1" value="0.55" step="0.01">
+      <div class="dp-row"><span class="dp-label">T3 Sparse</span><span class="dp-val" id="val-dither-t3">1.00</span></div>
+      <input type="range" id="ctrl-dither-t3" min="0" max="1" value="1.0" step="0.01">
     </div>
     <div class="dp-ctrl" style="display:flex; align-items:center; justify-content:space-between; margin-top:4px;">
       <span class="dp-label">Mouse Interaction</span>
       <input type="checkbox" id="ctrl-dither-proximity" checked>
     </div>
     <div class="dp-ctrl">
-      <div class="dp-row"><span class="dp-label">Blur Size</span><span class="dp-val" id="val-dither-mouse-blur">3</span></div>
-      <input type="range" id="ctrl-dither-mouse-blur" min="0" max="12" value="3" step="0.5">
+      <div class="dp-row"><span class="dp-label">Blur Size</span><span class="dp-val" id="val-dither-mouse-blur">5.0</span></div>
+      <input type="range" id="ctrl-dither-mouse-blur" min="0" max="12" value="5" step="0.5">
     </div>
     <div class="dp-ctrl">
       <div class="dp-row"><span class="dp-label">Blur Amount</span><span class="dp-val" id="val-dither-mouse-blur-amount">1.0</span></div>
@@ -1050,18 +1137,25 @@
       perLetter: false,
     };
 
+    const ditherPresets = {
+      eye: {
+        cell: 7, brightness: 0, contrast: 1.85, gamma: 1.2,
+        t1: 0.98, t2: 0.71, t3: 1.0,
+        mouseBlur: 5.0, mouseBlurAmount: 1.0,
+        invert: true,
+      },
+      butterfly: {
+        cell: 7, brightness: 0, contrast: 1.85, gamma: 1.2,
+        t1: 0.98, t2: 0.71, t3: 0.55,
+        mouseBlur: 3, mouseBlurAmount: 1.0,
+        invert: false,
+      },
+    };
+
     const ditherConfig = {
-      cell:       7,
-      brightness: 0,
-      contrast:   1.85,
-      gamma:      1.2,
-      t1:         0.98,
-      t2:         0.71,
-      t3:         0.55,
+      ...ditherPresets.eye,
       proximityEnabled: true,
-      proximityRadius: 220,
-      mouseBlur: 3,
-      mouseBlurAmount: 1.0,
+      proximityRadius: 330,
     };
 
     const effectDefaults = {
@@ -1340,6 +1434,36 @@
     }
 
     // ── Animate slide button in after the text words finish staggering ──
+    function animatePressList(list) {
+      list.classList.remove('animating', 'settled');
+      if (list._settleTimer) { clearTimeout(list._settleTimer); list._settleTimer = null; }
+      void list.offsetWidth;
+
+      const supportsP3 = CSS.supports('color', 'color(display-p3 0 0 0)');
+      list.style.setProperty('--hue-color', supportsP3
+        ? 'color(display-p3 0.835 0.184 0.753)'
+        : config.hueColor);
+      list.style.setProperty('--hue-angle', config.hueAngle + 'deg');
+      list.style.setProperty('--stretch-amount', config.stretchAmount);
+      list.style.setProperty('--stretch-blur', config.stretchBlur + 'px');
+      list.style.setProperty('--duration', config.duration + 'ms');
+      list.style.setProperty('--easing', config.easing);
+
+      const items = list.querySelectorAll('.press-item');
+      const stagger = Math.max(config.stagger, 180);
+      items.forEach((item, i) => {
+        item.style.animationDelay = (i * stagger) + 'ms';
+      });
+      list.classList.add('animating');
+
+      const totalMs = (items.length - 1) * stagger + config.duration + 60;
+      list._settleTimer = setTimeout(() => {
+        list.classList.remove('animating');
+        list.classList.add('settled');
+        list._settleTimer = null;
+      }, totalMs);
+    }
+
     function animateBtn(btn, textEl) {
       btn.classList.remove('animating');
       void btn.offsetWidth;
@@ -1388,11 +1512,18 @@
           if (textEl) animateIn(textEl);
           const btn = slide.querySelector('.slide-btn');
           if (btn) animateBtn(btn, textEl);
+          const press = slide.querySelector('.press-list');
+          if (press) animatePressList(press);
           if (slideIdx === 0) { ditherBg?.start(); expandIntroWords(); attachSlide0ScrollTrigger(); }
         } else if (entry.intersectionRatio < 0.1) {
           if (textEl) textEl.classList.remove('animating');
           const btn = slide.querySelector('.slide-btn');
           if (btn) { btn.classList.remove('animating'); btn.style.animationDelay = ''; }
+          const press = slide.querySelector('.press-list');
+          if (press) {
+            press.classList.remove('animating', 'settled');
+            if (press._settleTimer) { clearTimeout(press._settleTimer); press._settleTimer = null; }
+          }
           if (slideIdx === 0) detachSlide0ScrollTrigger();
         }
       });
@@ -1403,12 +1534,19 @@
       document.querySelectorAll('.loop-sentinel').forEach(s => observer.observe(s));
     }
 
-    // ── Click/tap — advance to next slide (ignore clicks on sidebar / bottom btns) ──
-    slidesContainer.addEventListener('click', (e) => {
+    // ── Arrow keys — advance / go back ──
+    document.addEventListener('keydown', (e) => {
       if (introRunning) return;
-      if (e.target.closest('#dev-sidebar')) return;
-      const next = slides[Math.min(currentSlide + 1, slides.length - 1)];
-      next.scrollIntoView({ behavior: 'smooth' });
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA')) return;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
+        e.preventDefault();
+        const next = slides[Math.min(currentSlide + 1, slides.length - 1)];
+        next.scrollIntoView({ behavior: 'smooth' });
+      } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault();
+        const prev = slides[Math.max(currentSlide - 1, 0)];
+        prev.scrollIntoView({ behavior: 'smooth' });
+      }
     });
 
 
@@ -1512,6 +1650,35 @@
     });
     bindDither('ctrl-dither-mouse-blur',        'val-dither-mouse-blur',        'mouseBlur',       1);
     bindDither('ctrl-dither-mouse-blur-amount', 'val-dither-mouse-blur-amount', 'mouseBlurAmount', 2);
+
+    function applyDitherPreset(name) {
+      const preset = ditherPresets[name];
+      if (!preset) return;
+      Object.assign(ditherConfig, preset);
+      // Sync UI controls + value labels
+      const map = [
+        ['ctrl-dither-cell',             'val-dither-cell',             'cell',             v => v + 'px'],
+        ['ctrl-dither-brightness',       'val-dither-brightness',       'brightness',       v => v.toFixed(2)],
+        ['ctrl-dither-contrast',         'val-dither-contrast',         'contrast',         v => v.toFixed(2)],
+        ['ctrl-dither-gamma',            'val-dither-gamma',            'gamma',            v => v.toFixed(1)],
+        ['ctrl-dither-t1',               'val-dither-t1',               't1',               v => v.toFixed(2)],
+        ['ctrl-dither-t2',               'val-dither-t2',               't2',               v => v.toFixed(2)],
+        ['ctrl-dither-t3',               'val-dither-t3',               't3',               v => v.toFixed(2)],
+        ['ctrl-dither-mouse-blur',       'val-dither-mouse-blur',       'mouseBlur',        v => v.toFixed(1)],
+        ['ctrl-dither-mouse-blur-amount','val-dither-mouse-blur-amount','mouseBlurAmount',  v => v.toFixed(2)],
+      ];
+      map.forEach(([inputId, valId, key, fmt]) => {
+        const input = document.getElementById(inputId);
+        const display = document.getElementById(valId);
+        if (input)   input.value = preset[key];
+        if (display) display.textContent = fmt(preset[key]);
+      });
+    }
+
+    document.getElementById('ctrl-dither-source').addEventListener('change', e => {
+      applyDitherPreset(e.target.value);
+      ditherBg?.setSource(e.target.value);
+    });
 
     document.getElementById('ctrl-per-letter').addEventListener('change', e => {
       config.perLetter = e.target.checked;
@@ -1827,7 +1994,11 @@
 
     function initDitherBg() {
       const bgCanvas = document.getElementById('dither-bg');
-      const video    = document.getElementById('butterfly-video');
+      const videos = {
+        eye:       document.getElementById('dither-video-eye'),
+        butterfly: document.getElementById('dither-video-butterfly'),
+      };
+      let video = videos.eye;
       if (!bgCanvas || !video) return null;
 
       const bgCtx      = bgCanvas.getContext('2d');
@@ -1916,6 +2087,7 @@
             // Luminance — blend normal and blurred source based on proximity
             function adjustLum(p) {
               let l = (0.299 * p[i] + 0.587 * p[i + 1] + 0.114 * p[i + 2]) / 255;
+              if (ditherConfig.invert) l = 1 - l;
               l += ditherConfig.brightness;
               l = ((l - 0.5) * ditherConfig.contrast) + 0.5;
               if (l > 0) l = Math.pow(l, 1 / ditherConfig.gamma);
@@ -1955,35 +2127,61 @@
         rafId = requestAnimationFrame(render);
       }
 
-      let fadeOutTimer = null;
-      let startTimer   = null;
-      const START_DELAY    = 1000;  // ms to wait before fading in
-      const FADE_IN_DURATION = 500; // ms fade-in duration
+      let fadeOutTimer    = null;
+      let startTimer      = null;
+      let brightnessRAF   = null;
+      const START_DELAY            = 300; // ms to wait before brightness anim
+      const BRIGHTNESS_DURATION    = 2000; // ms to ramp brightness in
+      const BRIGHTNESS_FROM        = -1;
+
+      function tweenBrightness(from, to, duration) {
+        if (brightnessRAF) cancelAnimationFrame(brightnessRAF);
+        const slider  = document.getElementById('ctrl-dither-brightness');
+        const display = document.getElementById('val-dither-brightness');
+        const t0 = performance.now();
+        function step(now) {
+          const t = Math.min(1, (now - t0) / duration);
+          const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
+          const v = from + (to - from) * eased;
+          ditherConfig.brightness = v;
+          if (slider)  slider.value = v;
+          if (display) display.textContent = v.toFixed(2);
+          if (t < 1) brightnessRAF = requestAnimationFrame(step);
+          else        brightnessRAF = null;
+        }
+        brightnessRAF = requestAnimationFrame(step);
+      }
 
       return {
         start() {
           if (fadeOutTimer) { clearTimeout(fadeOutTimer); fadeOutTimer = null; }
-          if (startTimer)   return; // already pending — let it run
-          // Snap to invisible so the upcoming transition fades in cleanly
+          if (startTimer)   { clearTimeout(startTimer);   startTimer   = null; }
+          if (brightnessRAF){ cancelAnimationFrame(brightnessRAF); brightnessRAF = null; }
+
+          // Capture target brightness (respects user-tweaked preset value), then
+          // snap to BRIGHTNESS_FROM immediately so the canvas is uniformly dark.
+          const targetBrightness = ditherConfig.brightness;
+          ditherConfig.brightness = BRIGHTNESS_FROM;
           bgCanvas.style.transition = 'none';
-          bgCanvas.style.opacity    = '0';
-          void bgCanvas.offsetWidth; // force reflow so transition applies next
+          bgCanvas.style.opacity    = '1';
+          video.play().catch(() => {});
+          if (!rafId) render();
+
           startTimer = setTimeout(() => {
             startTimer = null;
-            bgCanvas.style.transition = `opacity ${FADE_IN_DURATION}ms ease-in-out`;
-            bgCanvas.style.opacity    = '1';
-            video.play().catch(() => {});
-            if (!rafId) render();
+            tweenBrightness(BRIGHTNESS_FROM, targetBrightness, BRIGHTNESS_DURATION);
           }, START_DELAY);
         },
         stop() {
-          if (startTimer)   { clearTimeout(startTimer);   startTimer   = null; }
-          if (fadeOutTimer) { clearTimeout(fadeOutTimer); fadeOutTimer = null; }
+          if (startTimer)    { clearTimeout(startTimer);    startTimer    = null; }
+          if (fadeOutTimer)  { clearTimeout(fadeOutTimer);  fadeOutTimer  = null; }
+          if (brightnessRAF) { cancelAnimationFrame(brightnessRAF); brightnessRAF = null; }
           if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
           video.pause();
         },
         fadeOut(duration) {
-          if (startTimer) { clearTimeout(startTimer); startTimer = null; }
+          if (startTimer)    { clearTimeout(startTimer);    startTimer    = null; }
+          if (brightnessRAF) { cancelAnimationFrame(brightnessRAF); brightnessRAF = null; }
           bgCanvas.style.transition = `opacity ${duration}ms ease-in-out`;
           bgCanvas.style.opacity = '0';
           fadeOutTimer = setTimeout(() => {
@@ -1991,6 +2189,19 @@
             if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
             video.pause();
           }, duration);
+        },
+        setSource(name) {
+          const next = videos[name];
+          if (!next || next === video) return;
+          const wasActive = !video.paused;
+          video.pause();
+          video.currentTime = 0;
+          video = next;
+          if (wasActive || rafId) {
+            video.currentTime = 0;
+            video.play().catch(() => {});
+            if (!rafId) render();
+          }
         },
       };
     }
