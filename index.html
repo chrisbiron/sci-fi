@@ -488,8 +488,8 @@
                   font-size 0.4s cubic-bezier(0.77, 0, 0.175, 1),
                   color 0.4s cubic-bezier(0.77, 0, 0.175, 1);
     }
-    #intro-word-sci { left: 100px; }
-    #intro-word-fi  { right: 100px; }
+    #intro-word-sci { left: 200px; }
+    #intro-word-fi  { right: 200px; }
 
     /* Hue-stretch animation for intro words — fires when phase 2 begins */
     @keyframes intro-word-in {
@@ -574,13 +574,11 @@
 
     /* Expanded intro words on butterfly slide — overrides p2 to show full Science / Fiction */
     #intro-word-sci.expanded {
-      left: 50px;
+      left: 200px;
       font-size: clamp(40px, 5.5vw, 120px);
-      color: var(--color-text);
     }
     #intro-word-fi.expanded {
       font-size: clamp(40px, 5.5vw, 120px);
-      color: var(--color-text);
     }
     .p2.expanded .intro-drop {
       max-width: 600px;
@@ -1583,7 +1581,7 @@
       introWordFi.style.right = (window.innerWidth - rect.right) + 'px';
       introWordFi.offsetWidth; // force reflow
       introWordFi.style.transition = '';
-      introWordFi.style.right = '50px';
+      introWordFi.style.right = '200px';
       introWordSci.classList.add('expanded');
       introWordFi.classList.add('expanded');
       wordsExpanded = true;
@@ -1599,9 +1597,9 @@
 
       // Step 1: squish 50px toward center
       introWordSci.style.transition = `left ${squishDuration}ms ${squishEasing}`;
-      introWordSci.style.left = '100px';
+      introWordSci.style.left = '300px';
       introWordFi.style.transition = `right ${squishDuration}ms ${squishEasing}`;
-      introWordFi.style.right = '100px';
+      introWordFi.style.right = '300px';
 
       _squishTimerId = setTimeout(() => {
         _squishTimerId = null;
@@ -1703,9 +1701,10 @@
       function triggerPhase2() {
         const mobile = isMobile();
         const animDuration = config.duration; // match slide text animation duration
-        const wordStagger = 100;              // ms delay between Science and Fiction
+        const wordsAppearDelay = 200;         // ms — wait after canvas starts exiting before words animate in
+        const wordStagger = 150;              // ms delay between Science and Fiction
         const pauseAfterAnim = 500;           // ms to hold full-size words before collapse
-        const collapseAt = animDuration + wordStagger + pauseAfterAnim;
+        const collapseAt = wordsAppearDelay + animDuration + wordStagger + pauseAfterAnim;
 
         requestAnimationFrame(() => {
           // Canvas exits, overlay fades, dither starts
@@ -1721,7 +1720,7 @@
               w.style.setProperty('--stretch-amount', config.stretchAmount);
               w.style.setProperty('--stretch-blur', config.stretchBlur + 'px');
               w.style.animationDuration = animDuration + 'ms';
-              w.style.animationDelay = (i * wordStagger) + 'ms';
+              w.style.animationDelay = (wordsAppearDelay + i * wordStagger) + 'ms';
               w.classList.add('intro-word-anim');
             });
           }
@@ -1798,7 +1797,7 @@
             document.addEventListener('click',      doCollapse);
             document.addEventListener('wheel',      doCollapse);
             document.addEventListener('touchstart', doCollapse);
-          }, animDuration + wordStagger);
+          }, wordsAppearDelay + animDuration + wordStagger);
 
         } else {
           // Mobile: no word animation; start immediately
@@ -1958,7 +1957,7 @@
 
       let fadeOutTimer = null;
       let startTimer   = null;
-      const START_DELAY    = 500;   // ms to wait before fading in
+      const START_DELAY    = 1000;  // ms to wait before fading in
       const FADE_IN_DURATION = 500; // ms fade-in duration
 
       return {
