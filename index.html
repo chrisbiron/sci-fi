@@ -557,8 +557,8 @@
     @keyframes intro-word-in {
       0%  {
         opacity: 0;
-        transform: translate3d(0, -50%, 0) scaleY(var(--stretch-amount, 3));
-        filter: blur(var(--stretch-blur, 8px)) hue-rotate(var(--hue-angle, 180deg));
+        transform: translate3d(0, -50%, 0) scaleY(3.8);
+        filter: blur(12px) hue-rotate(-180deg);
         color: var(--hue-color, #fd43ff);
         color: var(--hue-color, color(display-p3 0.992 0.263 1));
       }
@@ -572,6 +572,8 @@
         filter: blur(0) hue-rotate(0deg);
         color: var(--color-text);
       }
+
+      
     }
     #intro-word-sci.intro-word-anim,
     #intro-word-fi.intro-word-anim {
@@ -1788,6 +1790,7 @@
     // Phase-2 trigger fires at 2400ms into playback (matches the source PNG timing).
     const introSrc      = './intro.webp';
     const introExitMs   = 2400;
+    const wordsLeadMs   = 200;   // start word entry this many ms before phase 2 (logo exit)
 
     // ── Intro sequence ──
     function runIntro() {
@@ -1812,20 +1815,39 @@
       //   2. Words animate IN simultaneously with hue-stretch effect (desktop only).
       //   3. After animation + pause, words collapse to Sci/Fi at edges.
       //   4. Main slide text starts animating.
-      function triggerPhase2() {
-        const animDuration = config.duration; // match slide text animation duration
-        const wordsAppearDelay = 200;         // ms — wait after canvas starts exiting before words animate in
-        const wordStagger = 150;              // ms delay between Science and Fiction
-        const pauseAfterAnim = 500;           // ms to hold full-size words before collapse
-        const collapseAt = wordsAppearDelay + animDuration + wordStagger + pauseAfterAnim;
+      const animDuration = config.duration; // match slide text animation duration
+      const wordsAppearDelay = 200;         // ms — wait after word-entry trigger before keyframe starts
+      const wordStagger = 150;              // ms delay between Science and Fiction
+      const pauseAfterAnim = 500;           // ms to hold full-size words before collapse
+      const collapseAt = wordsAppearDelay + animDuration + wordStagger + pauseAfterAnim;
+
+      // Word entry — runs `wordsLeadMs` before phase 2 (logo exit). Sets tight positions,
+      // kicks off the hue-stretch keyframe, then schedules the come-together/spread chain.
+      function startWordEntry() {
+        // Tight start positions — words appear ~60px apart, then drift outward.
+        // Measure actual rendered widths so the gap is correct regardless of viewport
+        // (font-size uses clamp()).
+        const tightGapPx   = 60;
+        const sciW         = wordSci.getBoundingClientRect().width;
+        const fiW          = wordFi.getBoundingClientRect().width;
+        const tightEdgePx  = Math.max(0,
+          (window.innerWidth - sciW - fiW - tightGapPx) / 2);
+        const finalEdgePx  = expandedEdgePx();         // 24 mobile / 200 desktop
+        const settleDelay  = wordsAppearDelay + animDuration + wordStagger + 350;
+        const closerDur    = 300;                      // ms — come together slightly
+        const closerOffset = 15;                       // px each side (30px total inward)
+        const spreadDur    = 500;                      // ms — then spread out to final
+        const spreadEasing = 'cubic-bezier(0.76, 0, 0.24, 1)'; // ease-in-out quart
+
+        // Set tight positions before the keyframe runs (no transition yet so the position
+        // jump is invisible).
+        wordSci.style.transition = 'none';
+        wordFi.style.transition  = 'none';
+        wordSci.style.left  = tightEdgePx + 'px';
+        wordFi.style.right  = tightEdgePx + 'px';
+        wordSci.offsetWidth; // force reflow
 
         requestAnimationFrame(() => {
-          // Canvas exits, overlay fades, dither starts
-          document.getElementById('intro-logo-large').classList.add('exit');
-          intro.classList.add('p2');
-          ditherBg?.start();
-
-          // Animate words in with hue-stretch
           [wordSci, wordFi].forEach((w, i) => {
             w.style.setProperty('--hue-color', config.hueColor);
             w.style.setProperty('--hue-angle', config.hueAngle + 'deg');
@@ -1837,7 +1859,39 @@
           });
         });
 
-        // After animation ends: lock in visible state, then wait for user input to collapse
+        // After settleDelay: words pull together slightly, then spread to final edges.
+        setTimeout(() => {
+          wordSci.style.setProperty('transition',
+            `left ${closerDur}ms ${spreadEasing}`, 'important');
+          wordFi.style.setProperty('transition',
+            `right ${closerDur}ms ${spreadEasing}`, 'important');
+          wordSci.style.left  = (tightEdgePx + closerOffset) + 'px';
+          wordFi.style.right  = (tightEdgePx + closerOffset) + 'px';
+
+          setTimeout(() => {
+            wordSci.style.setProperty('transition',
+              `left ${spreadDur}ms ${spreadEasing}`, 'important');
+            wordFi.style.setProperty('transition',
+              `right ${spreadDur}ms ${spreadEasing}`, 'important');
+            wordSci.style.left  = finalEdgePx + 'px';
+            wordFi.style.right  = finalEdgePx + 'px';
+          }, closerDur);
+        }, settleDelay);
+      }
+
+      function triggerPhase2() {
+        requestAnimationFrame(() => {
+          // Canvas exits, overlay fades, dither starts
+          document.getElementById('intro-logo-large').classList.add('exit');
+          intro.classList.add('p2');
+          ditherBg?.start();
+        });
+
+        // After animation ends: lock in visible state, then wait for user input to collapse.
+        // Scheduled from triggerPhase2; word entry already started `wordsLeadMs` earlier, so
+        // the keyframe-in completes (wordsAppearDelay + animDuration + wordStagger after
+        // word entry) at `... - wordsLeadMs` after triggerPhase2 fires.
+        const lockinDelay = wordsAppearDelay + animDuration + wordStagger - wordsLeadMs;
         setTimeout(() => {
             [wordSci, wordFi].forEach(w => {
               w.style.opacity = '1';
@@ -1907,7 +1961,7 @@
             document.addEventListener('click',      doCollapse);
             document.addEventListener('wheel',      doCollapse);
             document.addEventListener('touchstart', doCollapse);
-          }, wordsAppearDelay + animDuration + wordStagger);
+          }, lockinDelay);
       }
 
       // Preload the animated WebP off-DOM; once both it and the 300ms black-screen delay are
@@ -1917,7 +1971,8 @@
       function maybePlay() {
         if (!preloaded || !delayDone) return;
         introImg.src = introSrc;          // animation begins on first paint
-        setTimeout(triggerPhase2, introExitMs);
+        setTimeout(startWordEntry, introExitMs - wordsLeadMs);
+        setTimeout(triggerPhase2,   introExitMs);
       }
       const preloader = new Image();
       preloader.onload = preloader.onerror = () => { preloaded = true; maybePlay(); };
@@ -2064,15 +2119,7 @@
             else if (lum >= ditherConfig.t2) si = 1;
             else if (lum >= ditherConfig.t3) si = 2;
             else {
-              // Off cell — draw bar in #ddd when mouse is nearby
-              if (ditherConfig.proximityEnabled && prox > 0.005) {
-                // Lerp #fff → #ddd based on proximity
-                const ch = Math.round(255 - prox * 34);
-                const offColor = `rgb(${ch},${ch},${ch})`;
-                if (offColor !== lastColor) { bgCtx.fillStyle = offColor; lastColor = offColor; }
-                bgCtx.setTransform(sf, 0, 0, sf, x * CELL, y * CELL);
-                bgCtx.fill(SHAPES[2]);
-              }
+              // Off cell — leave empty (no proximity bar)
               continue;
             }
 
@@ -2093,7 +2140,7 @@
       let brightnessRAF   = null;
       let mouseBlurRAF    = null;
       let hasStartedOnce  = false;
-      const START_DELAY_FIRST           = 300;  // ms before brightness anim on first run (syncs with intro exit)
+      const START_DELAY_FIRST           = 900;  // ms before brightness anim on first run (syncs with intro exit)
       const START_DELAY_RETURN          = 0;    // ms before brightness anim when re-entering slide 0 (loop / scroll)
       const BRIGHTNESS_DURATION_FIRST   = 2000; // ms to ramp brightness in on the cinematic first run
       const BRIGHTNESS_DURATION_RETURN  = 2000; // ms to ramp on loop re-entry
