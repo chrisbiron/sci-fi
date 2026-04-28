@@ -1957,20 +1957,34 @@
       }
 
       let fadeOutTimer = null;
+      let startTimer   = null;
+      const START_DELAY    = 500;   // ms to wait before fading in
+      const FADE_IN_DURATION = 500; // ms fade-in duration
 
       return {
         start() {
           if (fadeOutTimer) { clearTimeout(fadeOutTimer); fadeOutTimer = null; }
-          bgCanvas.style.transition = '';
-          bgCanvas.style.opacity = '1';
-          video.play().catch(() => {});
-          if (!rafId) render();
+          if (startTimer)   return; // already pending — let it run
+          // Snap to invisible so the upcoming transition fades in cleanly
+          bgCanvas.style.transition = 'none';
+          bgCanvas.style.opacity    = '0';
+          void bgCanvas.offsetWidth; // force reflow so transition applies next
+          startTimer = setTimeout(() => {
+            startTimer = null;
+            bgCanvas.style.transition = `opacity ${FADE_IN_DURATION}ms ease-in-out`;
+            bgCanvas.style.opacity    = '1';
+            video.play().catch(() => {});
+            if (!rafId) render();
+          }, START_DELAY);
         },
         stop() {
+          if (startTimer)   { clearTimeout(startTimer);   startTimer   = null; }
+          if (fadeOutTimer) { clearTimeout(fadeOutTimer); fadeOutTimer = null; }
           if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
           video.pause();
         },
         fadeOut(duration) {
+          if (startTimer) { clearTimeout(startTimer); startTimer = null; }
           bgCanvas.style.transition = `opacity ${duration}ms ease-in-out`;
           bgCanvas.style.opacity = '0';
           fadeOutTimer = setTimeout(() => {
