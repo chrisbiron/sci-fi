@@ -790,6 +790,19 @@
       opacity: 0;
       transition: opacity 0.4s ease-in-out;
     }
+
+    /* Source <video> elements: off-screen but paintable to canvas. iOS Safari refuses
+       to play `display:none` videos, so we keep them rendered at 1×1 with opacity 0. */
+    .dither-source-video {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+      z-index: -1;
+    }
   </style>
 </head>
 <body>
@@ -1026,9 +1039,11 @@
     <img id="intro-canvas" alt="" aria-hidden="true">
   </div>
 
-  <!-- Video sources for dither background -->
-  <video id="dither-video-eye"       src="./eye.mp4"       muted loop playsinline style="display:none"></video>
-  <video id="dither-video-butterfly" src="./butterfly.mp4" muted loop playsinline style="display:none"></video>
+  <!-- Video sources for dither background. Note: NOT display:none — iOS Safari refuses
+       to play hidden videos. Off-screen + 1×1 + opacity 0 keeps them paintable to the
+       canvas while invisible to the user. -->
+  <video id="dither-video-eye"       src="./eye.mp4"       muted loop playsinline webkit-playsinline preload="auto" class="dither-source-video"></video>
+  <video id="dither-video-butterfly" src="./butterfly.mp4" muted loop playsinline webkit-playsinline preload="auto" class="dither-source-video"></video>
 
   <!-- Dither background — fixed behind intro overlay, fades out on collapse -->
   <canvas id="dither-bg" aria-hidden="true"></canvas>
