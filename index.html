@@ -1480,15 +1480,23 @@
     }
 
     // ── IntersectionObserver — animate in on enter, reset on exit ──
+    // Set true the moment the loop-sentinel triggers a jump back to slide 0, so the
+    // subsequent slide-0 observer fire doesn't restart the dither (we already started it).
+    let _loopJumpStartedDither = false;
+
     const observer = new IntersectionObserver(entries => {
       entries.forEach(entry => {
         const slide    = entry.target;
         const slideIdx = parseInt(slide.dataset.index);
         const textEl   = slide.querySelector('.slide-text');
 
-        // Loop sentinel: jump back to slide 0 seamlessly
+        // Loop sentinel: jump back to slide 0 seamlessly. Kick the dither reveal NOW
+        // (not when slide 0 hits 60% visible) so the brightness ramp is already running
+        // by the time slide 0 has snapped into view.
         if (slide.classList.contains('loop-sentinel')) {
           if (entry.intersectionRatio >= 0.6) {
+            _loopJumpStartedDither = true;
+            ditherBg?.start();
             slidesContainer.scrollTop = 0;
           }
           return;
@@ -1503,7 +1511,12 @@
           if (btn) animateBtn(btn, textEl);
           const press = slide.querySelector('.press-list');
           if (press) animatePressList(press);
-          if (slideIdx === 0) { ditherBg?.start(); expandIntroWords(); attachSlide0ScrollTrigger(); }
+          if (slideIdx === 0) {
+            if (!_loopJumpStartedDither) ditherBg?.start();
+            _loopJumpStartedDither = false;
+            expandIntroWords();
+            attachSlide0ScrollTrigger();
+          }
         } else if (entry.intersectionRatio < 0.1) {
           if (textEl) textEl.classList.remove('animating');
           const btn = slide.querySelector('.slide-btn');
@@ -2102,13 +2115,15 @@
       }
 
       let fadeOutTimer    = null;
+      let fadeOutPauseTimer = null;
       let startTimer      = null;
       let brightnessRAF   = null;
       let mouseBlurRAF    = null;
       let hasStartedOnce  = false;
-      const START_DELAY_FIRST        = 300;  // ms before brightness anim on first run (syncs with intro exit)
-      const START_DELAY_RETURN       = 0;    // ms before brightness anim when re-entering slide 0 (loop / scroll)
-      const BRIGHTNESS_DURATION      = 2000; // ms to ramp brightness in
+      const START_DELAY_FIRST           = 300;  // ms before brightness anim on first run (syncs with intro exit)
+      const START_DELAY_RETURN          = 0;    // ms before brightness anim when re-entering slide 0 (loop / scroll)
+      const BRIGHTNESS_DURATION_FIRST   = 2000; // ms to ramp brightness in on the cinematic first run
+      const BRIGHTNESS_DURATION_RETURN  = 2000; // ms to ramp on loop re-entry
       const BRIGHTNESS_FROM          = -1;
       const MOUSE_BLUR_OUT_DURATION  = 300;  // ms to fade out proximity effect
 
@@ -2145,10 +2160,11 @@
 
       return {
         start() {
-          if (fadeOutTimer) { clearTimeout(fadeOutTimer); fadeOutTimer = null; }
-          if (startTimer)   { clearTimeout(startTimer);   startTimer   = null; }
-          if (brightnessRAF){ cancelAnimationFrame(brightnessRAF); brightnessRAF = null; }
-          if (mouseBlurRAF) { cancelAnimationFrame(mouseBlurRAF);  mouseBlurRAF  = null; }
+          if (fadeOutTimer)      { clearTimeout(fadeOutTimer);      fadeOutTimer      = null; }
+          if (fadeOutPauseTimer) { clearTimeout(fadeOutPauseTimer); fadeOutPauseTimer = null; }
+          if (startTimer)        { clearTimeout(startTimer);        startTimer        = null; }
+          if (brightnessRAF)     { cancelAnimationFrame(brightnessRAF); brightnessRAF = null; }
+          if (mouseBlurRAF)      { cancelAnimationFrame(mouseBlurRAF);  mouseBlurRAF  = null; }
 
           // Restore mouseBlurAmount from the slider (the canonical user value)
           const mbSlider = document.getElementById('ctrl-dither-mouse-blur-amount');
@@ -2164,29 +2180,34 @@
           video.play().catch(() => {});
           if (!rafId) render();
 
-          const delay = hasStartedOnce ? START_DELAY_RETURN : START_DELAY_FIRST;
+          const delay   = hasStartedOnce ? START_DELAY_RETURN         : START_DELAY_FIRST;
+          const rampDur = hasStartedOnce ? BRIGHTNESS_DURATION_RETURN : BRIGHTNESS_DURATION_FIRST;
           hasStartedOnce = true;
+          // updateUI=false: the slider is the canonical user-set target — don't let the
+          // reveal animation overwrite it (would drift the target on a mid-tween cancel).
           if (delay <= 0) {
-            tweenBrightness(BRIGHTNESS_FROM, targetBrightness, BRIGHTNESS_DURATION);
+            tweenBrightness(BRIGHTNESS_FROM, targetBrightness, rampDur, /*updateUI=*/ false);
           } else {
             startTimer = setTimeout(() => {
               startTimer = null;
-              tweenBrightness(BRIGHTNESS_FROM, targetBrightness, BRIGHTNESS_DURATION);
+              tweenBrightness(BRIGHTNESS_FROM, targetBrightness, rampDur, /*updateUI=*/ false);
             }, delay);
           }
         },
         stop() {
-          if (startTimer)    { clearTimeout(startTimer);    startTimer    = null; }
-          if (fadeOutTimer)  { clearTimeout(fadeOutTimer);  fadeOutTimer  = null; }
-          if (brightnessRAF) { cancelAnimationFrame(brightnessRAF); brightnessRAF = null; }
-          if (mouseBlurRAF)  { cancelAnimationFrame(mouseBlurRAF);  mouseBlurRAF  = null; }
+          if (startTimer)        { clearTimeout(startTimer);        startTimer        = null; }
+          if (fadeOutTimer)      { clearTimeout(fadeOutTimer);      fadeOutTimer      = null; }
+          if (fadeOutPauseTimer) { clearTimeout(fadeOutPauseTimer); fadeOutPauseTimer = null; }
+          if (brightnessRAF)     { cancelAnimationFrame(brightnessRAF); brightnessRAF = null; }
+          if (mouseBlurRAF)      { cancelAnimationFrame(mouseBlurRAF);  mouseBlurRAF  = null; }
           if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
           video.pause();
         },
         fadeOut(duration) {
-          if (startTimer)    { clearTimeout(startTimer);    startTimer    = null; }
-          if (brightnessRAF) { cancelAnimationFrame(brightnessRAF); brightnessRAF = null; }
-          if (fadeOutTimer)  { clearTimeout(fadeOutTimer);  fadeOutTimer  = null; }
+          if (startTimer)        { clearTimeout(startTimer);        startTimer        = null; }
+          if (brightnessRAF)     { cancelAnimationFrame(brightnessRAF); brightnessRAF = null; }
+          if (fadeOutTimer)      { clearTimeout(fadeOutTimer);      fadeOutTimer      = null; }
+          if (fadeOutPauseTimer) { clearTimeout(fadeOutPauseTimer); fadeOutPauseTimer = null; }
 
           const brightnessOutDuration = 1000;
           const opacityOutDuration    = 200;
@@ -2197,7 +2218,10 @@
             fadeOutTimer = null;
             bgCanvas.style.transition = `opacity ${opacityOutDuration}ms ease-in-out`;
             bgCanvas.style.opacity = '0';
-            setTimeout(() => {
+            // Stash this timeout's handle so a fast re-entry can cancel it before it
+            // kills the render loop / pauses the video.
+            fadeOutPauseTimer = setTimeout(() => {
+              fadeOutPauseTimer = null;
               if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
               video.pause();
             }, opacityOutDuration);
