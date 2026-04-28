@@ -6,6 +6,8 @@
   <title>Science Fiction</title>
   <link rel="icon" href="./favicon.svg" type="image/svg+xml">
   <link rel="preload" href="./fonts/Rhymes Text Medium.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="./fonts/untitled-sans-regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="./fonts/untitled-sans-medium.woff2" as="font" type="font/woff2" crossorigin>
   <style>
     @font-face {
       font-family: 'Rhymes Text';
@@ -17,15 +19,19 @@
     }
     @font-face {
       font-family: 'Untitled Sans';
-      src: local('UntitledSans-Regular'), local('Untitled Sans Regular'), local('Untitled Sans');
+      src: local('UntitledSans-Regular'), local('Untitled Sans Regular'), local('Untitled Sans'),
+           url('./fonts/untitled-sans-regular.woff2') format('woff2');
       font-weight: 400;
       font-style: normal;
+      font-display: block;
     }
     @font-face {
       font-family: 'Untitled Sans';
-      src: local('UntitledSans-Medium'), local('Untitled Sans Medium');
+      src: local('UntitledSans-Medium'), local('Untitled Sans Medium'),
+           url('./fonts/untitled-sans-medium.woff2') format('woff2');
       font-weight: 500;
       font-style: normal;
+      font-display: block;
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
