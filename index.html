@@ -4,10 +4,31 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Science Fiction</title>
+  <meta name="description" content="Science Fiction is a software company turning frontier technology into iconic products.">
+  <meta name="theme-color" content="#000000">
+  <link rel="canonical" href="https://chrisbiron.github.io/sci-fi/">
   <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Science Fiction">
+  <meta property="og:title" content="Science Fiction">
+  <meta property="og:description" content="A software company turning frontier technology into iconic products.">
+  <meta property="og:url" content="https://chrisbiron.github.io/sci-fi/">
+  <meta property="og:image" content="https://chrisbiron.github.io/sci-fi/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Science Fiction">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Science Fiction">
+  <meta name="twitter:description" content="A software company turning frontier technology into iconic products.">
+  <meta name="twitter:image" content="https://chrisbiron.github.io/sci-fi/og.png">
   <link rel="preload" href="./fonts/Rhymes Text Medium.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="./fonts/untitled-sans-regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="./fonts/untitled-sans-medium.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="./intro.webp" as="image" type="image/webp">
   <style>
     @font-face {
       font-family: 'Rhymes Text';
@@ -207,24 +228,6 @@
       line-height: 0;
     }
 
-    /* Effect: fade */
-    @keyframes word-fade {
-      from { opacity: 0; }
-      to   { opacity: 1; }
-    }
-
-    /* Effect: slide-up */
-    @keyframes word-slide-up {
-      from { opacity: 0; transform: translateY(var(--translate-amount, 24px)); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Effect: slide-down */
-    @keyframes word-slide-down {
-      from { opacity: 0; transform: translateY(calc(var(--translate-amount, 24px) * -1)); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
     /* Effect: blur */
     @keyframes word-blur {
       from { opacity: 0; filter: blur(var(--blur-amount, 8px)); }
@@ -237,18 +240,6 @@
       to   { opacity: 1; filter: blur(0); transform: translateY(0); }
     }
 
-    /* Effect: scale */
-    @keyframes word-scale {
-      from { opacity: 0; transform: scale(var(--scale-from, 0.75)); }
-      to   { opacity: 1; transform: scale(1); }
-    }
-
-    /* Effect: skew */
-    @keyframes word-skew {
-      from { opacity: 0; transform: translateY(var(--translate-amount, 20px)) skewY(8deg); }
-      to   { opacity: 1; transform: translateY(0) skewY(0deg); }
-    }
-
     .slide-text.animating .word {
       opacity: 1;
       animation-fill-mode: both;
@@ -256,14 +247,9 @@
       animation-duration: var(--duration, 600ms);
     }
 
-    .slide-text[data-effect="fade"].animating         .word { animation-name: word-fade; }
-    .slide-text[data-effect="slide-up"].animating     .word { animation-name: word-slide-up; }
-    .slide-text[data-effect="slide-down"].animating   .word { animation-name: word-slide-down; }
-    .slide-text[data-effect="blur"].animating         .word { animation-name: word-blur; }
-    .slide-text[data-effect="blur-up"].animating            .word { animation-name: word-blur-up; }
-    .slide-text[data-effect="scale"].animating        .word { animation-name: word-scale; }
-    .slide-text[data-effect="skew"].animating         .word { animation-name: word-skew; }
-    .slide-text[data-effect="blob"].animating         .word { animation-name: word-blob; }
+    .slide-text[data-effect="blur"].animating    .word { animation-name: word-blur; }
+    .slide-text[data-effect="blur-up"].animating .word { animation-name: word-blur-up; }
+    .slide-text[data-effect="blob"].animating    .word { animation-name: word-blob; }
 
     /* Effect: blob — phase 1: opacity 0→1 via CSS; phase 2: stroke+blur resolved by JS after animationend */
     @keyframes word-blob {
@@ -539,7 +525,9 @@
     #intro-word-fi {
       position: fixed;
       top: 50%;
-      transform: translateY(-50%);
+      /* translate3d (instead of translateY) forces a compositor layer so transform/opacity/
+         filter animations stay on the GPU. */
+      transform: translate3d(0, -50%, 0);
       z-index: 201;
       font-family: 'Untitled Sans', sans-serif;
       font-weight: 500;
@@ -551,6 +539,7 @@
       white-space: nowrap;
       pointer-events: none;
       -webkit-font-smoothing: antialiased;
+      backface-visibility: hidden;
       transition: left 0.4s cubic-bezier(0.77, 0, 0.175, 1),
                   right 0.4s cubic-bezier(0.77, 0, 0.175, 1),
                   font-size 0.4s cubic-bezier(0.77, 0, 0.175, 1),
@@ -559,11 +548,16 @@
     #intro-word-sci { left: 200px; }
     #intro-word-fi  { right: 200px; }
 
-    /* Hue-stretch animation for intro words — fires when phase 2 begins */
+    /* Hue-stretch animation for intro words — fires when phase 2 begins.
+       Uses translate3d to force a compositor layer; will-change tells the browser to
+       allocate the layer up-front so the first frame isn't janky. Color is still animated
+       (it's the magenta-to-black sweep) — the trade-off is a single text-element repaint
+       per frame, which is acceptable. The expensive `filter: blur()` is the main cost,
+       but on a single element with a stable layer it should hold 60fps. */
     @keyframes intro-word-in {
       0%  {
         opacity: 0;
-        transform: translateY(-50%) scaleY(var(--stretch-amount, 3));
+        transform: translate3d(0, -50%, 0) scaleY(var(--stretch-amount, 3));
         filter: blur(var(--stretch-blur, 8px)) hue-rotate(var(--hue-angle, 180deg));
         color: var(--hue-color, #fd43ff);
         color: var(--hue-color, color(display-p3 0.992 0.263 1));
@@ -574,7 +568,7 @@
       }
       100% {
         opacity: 1;
-        transform: translateY(-50%) scaleY(1);
+        transform: translate3d(0, -50%, 0) scaleY(1);
         filter: blur(0) hue-rotate(0deg);
         color: var(--color-text);
       }
@@ -586,6 +580,7 @@
       animation-timing-function: cubic-bezier(0.87, 0, 0.13, 1);
       animation-fill-mode: forwards;
       transition: none !important;
+      will-change: transform, filter, opacity, color;
     }
 
     #intro-word-sci.p2 { left: 20px; font-size: 13px; color: var(--color-text); }
@@ -665,7 +660,7 @@
     }
     #intro.p2 { opacity: 0; pointer-events: none; }
 
-    /* PNG sequence canvas — fixed layer above overlay, persists on white page */
+    /* Intro logo (animated WebP) — fixed layer above overlay, persists on white page */
     #intro-logo-large {
       position: fixed;
       left: 50%; top: 50%;
@@ -684,6 +679,8 @@
       width: 179px;
       height: 89px;
     }
+    /* Hide until src is assigned so browsers don't render the broken-image placeholder */
+    #intro-canvas:not([src]) { visibility: hidden; }
 
     @media (max-width: 640px) {
       .slide { padding: 80px 24px; }
@@ -917,7 +914,7 @@
       </div>
 
       <!-- Translate Y -->
-      <div class="ctrl-group" data-for="slide-up slide-down blur-up skew">
+      <div class="ctrl-group" data-for="blur-up">
         <hr class="sb-div">
         <div class="sb-ctrl">
           <div class="sb-ctrl-header">
@@ -925,18 +922,6 @@
             <span class="sb-val" id="val-translate">12px</span>
           </div>
           <input type="range" id="ctrl-translate" min="0" max="80" value="12" step="2">
-        </div>
-      </div>
-
-      <!-- Scale From -->
-      <div class="ctrl-group" data-for="scale">
-        <hr class="sb-div">
-        <div class="sb-ctrl">
-          <div class="sb-ctrl-header">
-            <span class="sb-label">Scale From</span>
-            <span class="sb-val" id="val-scale-from">0.75</span>
-          </div>
-          <input type="range" id="ctrl-scale-from" min="0" max="1.5" value="0.75" step="0.05">
         </div>
       </div>
 
@@ -1036,9 +1021,9 @@
   <div id="intro-word-sci">Sci<span class="intro-drop">ence</span></div>
   <div id="intro-word-fi">Fi<span class="intro-drop">ction</span></div>
 
-  <!-- Canvas lives above the overlay, persists on the white page -->
+  <!-- Animated WebP lives above the overlay, persists on the white page -->
   <div id="intro-logo-large">
-    <canvas id="intro-canvas"></canvas>
+    <img id="intro-canvas" alt="" aria-hidden="true">
   </div>
 
   <!-- Video sources for dither background -->
@@ -1061,6 +1046,10 @@
         <option value="eye" selected>Eye</option>
         <option value="butterfly">Butterfly</option>
       </select>
+    </div>
+    <div class="dp-ctrl">
+      <div class="dp-row"><span class="dp-label">Zoom</span><span class="dp-val" id="val-dither-zoom">0.70</span></div>
+      <input type="range" id="ctrl-dither-zoom" min="0.5" max="3" value="0.7" step="0.05">
     </div>
     <div class="dp-ctrl">
       <div class="dp-row"><span class="dp-label">Grid Scale</span><span class="dp-val" id="val-dither-cell">7px</span></div>
@@ -1126,7 +1115,6 @@
       blur: 12,
       translate: 12,
       strokeWidth: 10,
-      scaleFrom: 0.75,
       stretchAmount: 2,
       stretchBlur: 5,
       stretchColor1: CSS.supports('color', 'color(display-p3 0 0 0)') ? 'color(display-p3 0 0.84 1)' : '#00ccff',
@@ -1142,12 +1130,14 @@
         cell: 7, brightness: 0, contrast: 1.85, gamma: 1.2,
         t1: 0.98, t2: 0.71, t3: 1.0,
         mouseBlur: 5.0, mouseBlurAmount: 1.0,
+        zoom: 0.7,
         invert: true,
       },
       butterfly: {
         cell: 7, brightness: 0, contrast: 1.85, gamma: 1.2,
         t1: 0.98, t2: 0.71, t3: 0.55,
         mouseBlur: 3, mouseBlurAmount: 1.0,
+        zoom: 0.7,
         invert: false,
       },
     };
@@ -1235,7 +1225,6 @@
       el.style.setProperty('--blur-amount', config.blur + 'px');
       el.style.setProperty('--translate-amount', config.translate + 'px');
       el.style.setProperty('--stroke-width', config.strokeWidth + 'px');
-      el.style.setProperty('--scale-from', config.scaleFrom);
       el.style.setProperty('--stretch-amount', config.stretchAmount);
       el.style.setProperty('--stretch-blur', config.stretchBlur + 'px');
       el.style.setProperty('--stretch-color1', config.stretchColor1);
@@ -1571,7 +1560,6 @@
     bindRange('ctrl-blur', 'val-blur', 'blur', 'px');
     bindRange('ctrl-translate', 'val-translate', 'translate', 'px');
     bindRange('ctrl-stroke', 'val-stroke', 'strokeWidth', 'px');
-    bindRange('ctrl-scale-from', 'val-scale-from', 'scaleFrom', '');
     bindRange('ctrl-stretch-amount', 'val-stretch-amount', 'stretchAmount', '×');
     bindRange('ctrl-stretch-blur', 'val-stretch-blur', 'stretchBlur', 'px');
     document.getElementById('ctrl-stretch-color1').addEventListener('input', e => { config.stretchColor1 = e.target.value; replay(); });
@@ -1638,6 +1626,7 @@
         display.textContent = decimals === 0 ? v + 'px' : v.toFixed(decimals);
       });
     }
+    bindDither('ctrl-dither-zoom',       'val-dither-zoom',       'zoom',       2);
     bindDither('ctrl-dither-cell',       'val-dither-cell',       'cell',       0);
     bindDither('ctrl-dither-brightness', 'val-dither-brightness', 'brightness', 2);
     bindDither('ctrl-dither-contrast',   'val-dither-contrast',   'contrast',   2);
@@ -1657,6 +1646,7 @@
       Object.assign(ditherConfig, preset);
       // Sync UI controls + value labels
       const map = [
+        ['ctrl-dither-zoom',             'val-dither-zoom',             'zoom',             v => v.toFixed(2)],
         ['ctrl-dither-cell',             'val-dither-cell',             'cell',             v => v + 'px'],
         ['ctrl-dither-brightness',       'val-dither-brightness',       'brightness',       v => v.toFixed(2)],
         ['ctrl-dither-contrast',         'val-dither-contrast',         'contrast',         v => v.toFixed(2)],
@@ -1707,8 +1697,6 @@
       devSidebar.classList.toggle('closed');
     });
 
-    // ── PNG sequence config ──
-    // Place frames at site/intro-frames/frame_0001.png, frame_0002.png, …
     // ── Module-level intro-word state (set by runIntro, used by observer + expand/collapse) ──
     let introWordSci = null;
     let introWordFi  = null;
@@ -1738,6 +1726,9 @@
       introWordSci.style.animationDelay    = '0s';
       introWordSci.style.animationDuration = '';
       introWordSci.style.transition        = '';
+      // Clear inline `left` from a possibly-aborted collapse (300px squish) so the CSS
+      // `#intro-word-sci.expanded { left: 200px }` rule wins.
+      introWordSci.style.left              = '';
       introWordFi.style.animationName      = 'none';
       introWordFi.style.animationDelay     = '0s';
       introWordFi.style.animationDuration  = '';
@@ -1791,51 +1782,10 @@
       }, squishDuration);
     }
 
-    const seqConfig = {
-      frameCount: 180,          // total number of frames
-      fps:        60,           // playback frame rate
-      width:      510,          // native frame width  (@2x → canvas pixel buffer)
-      height:     254,          // native frame height (@2x → canvas pixel buffer)
-      path: i => `./intro-frames/frame_${String(i).padStart(3, '0')}.png`,
-    };
-
-    // Preload all frames; calls onReady(imgArray) when every load/error has settled.
-    function loadFrames(cfg, onReady) {
-      const imgs = new Array(cfg.frameCount);
-      let done = 0;
-      for (let i = 0; i < cfg.frameCount; i++) {
-        const img = new Image();
-        img.onload = img.onerror = () => { if (++done === cfg.frameCount) onReady(imgs); };
-        img.src = cfg.path(i);
-        imgs[i] = img;
-      }
-    }
-
-    // Play preloaded frames on a canvas; calls onExit() at exitMs milliseconds into playback.
-    function playFrames(canvas, imgs, fps, exitMs, onExit) {
-      const ctx = canvas.getContext('2d');
-      const ms  = 1000 / fps;
-      let frame = 0, last = null, start = null, exitFired = false;
-      function tick(now) {
-        if (last === null) { last = now; start = now; }
-        // Fire exit callback at the specified time mark, then keep playing remaining frames
-        if (!exitFired && now - start >= exitMs) {
-          exitFired = true;
-          onExit(); // word transitions + logo exit all start here
-        }
-        if (now - last >= ms) {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          if (imgs[frame].naturalWidth) ctx.drawImage(imgs[frame], 0, 0, canvas.width, canvas.height);
-          last += ms;
-          if (++frame >= imgs.length) {
-            if (!exitFired) { exitFired = true; onExit(); }
-            return;
-          }
-        }
-        requestAnimationFrame(tick);
-      }
-      requestAnimationFrame(tick);
-    }
+    // Animated WebP intro sequence: 510×254 native, 180 frames @ 60fps = 3.0s total.
+    // Phase-2 trigger fires at 2400ms into playback (matches the source PNG timing).
+    const introSrc      = './intro.webp';
+    const introExitMs   = 2400;
 
     // ── Intro sequence ──
     function runIntro() {
@@ -1853,10 +1803,7 @@
       introFiW = probe.offsetWidth;
       probe.remove();
 
-      // Set up canvas dimensions
-      const canvas = document.getElementById('intro-canvas');
-      canvas.width  = seqConfig.width;
-      canvas.height = seqConfig.height;
+      const introImg = document.getElementById('intro-canvas');
 
       const isMobile = () => window.innerWidth <= 640;
 
@@ -1977,13 +1924,18 @@
         }
       }
 
-      // Load frames and 300ms black-screen delay in parallel; play when both are ready
-      let loadedImgs = null;
-      let delayDone  = false;
+      // Preload the animated WebP off-DOM; once both it and the 300ms black-screen delay are
+      // done, swap src on the visible <img> to start the animation, then schedule triggerPhase2.
+      let preloaded = false;
+      let delayDone = false;
       function maybePlay() {
-        if (loadedImgs && delayDone) playFrames(canvas, loadedImgs, seqConfig.fps, 2400, triggerPhase2);
+        if (!preloaded || !delayDone) return;
+        introImg.src = introSrc;          // animation begins on first paint
+        setTimeout(triggerPhase2, introExitMs);
       }
-      loadFrames(seqConfig, imgs => { loadedImgs = imgs; maybePlay(); });
+      const preloader = new Image();
+      preloader.onload = preloader.onerror = () => { preloaded = true; maybePlay(); };
+      preloader.src = introSrc;
       setTimeout(() => { delayDone = true; maybePlay(); }, 300);
     }
 
@@ -2050,9 +2002,19 @@
         offscreen.width  = cols;
         offscreen.height = rows;
         const vW = video.videoWidth, vH = video.videoHeight;
-        const scale = Math.max(cols / vW, rows / vH);
+        const zoom = ditherConfig.zoom || 1;
+        const scale = Math.max(cols / vW, rows / vH) * zoom;
         const dw = vW * scale, dh = vH * scale;
-        offCtx.drawImage(video, (cols - dw) / 2, (rows - dh) / 2, dw, dh);
+        const dxOff = (cols - dw) / 2;
+        const dyOff = (rows - dh) / 2;
+        offCtx.drawImage(video, dxOff, dyOff, dw, dh);
+        // Track bounds in cell coords for clipping shapes outside the video.
+        // Inset by 1 cell to drop edge artifacts from the video frame border.
+        const inset = 1;
+        const vxStart = Math.max(0, Math.floor(dxOff) + inset);
+        const vxEnd   = Math.min(cols, Math.ceil(dxOff + dw) - inset);
+        const vyStart = Math.max(0, Math.floor(dyOff) + inset);
+        const vyEnd   = Math.min(rows, Math.ceil(dyOff + dh) - inset);
         const pixels = offCtx.getImageData(0, 0, cols, rows).data;
 
         // Blurred version for proximity effect
@@ -2074,6 +2036,9 @@
 
         for (let y = 0; y < rows; y++) {
           for (let x = 0; x < cols; x++) {
+            // Cells outside the video bounds: skip luminance sampling, but still allow the
+            // proximity off-cell effect to render bars around the cursor.
+            const outOfBounds = (x < vxStart || x >= vxEnd || y < vyStart || y >= vyEnd);
             const i = (y * cols + x) * 4;
             // Proximity
             let prox = 0;
@@ -2084,6 +2049,9 @@
               prox = Math.pow(Math.max(0, 1 - dist / ditherConfig.proximityRadius), 2);
             }
 
+            // Out-of-bounds cells skip the proximity effect entirely if cursor is far away
+            if (outOfBounds && prox <= 0.005) continue;
+
             // Luminance — blend normal and blurred source based on proximity
             function adjustLum(p) {
               let l = (0.299 * p[i] + 0.587 * p[i + 1] + 0.114 * p[i + 2]) / 255;
@@ -2093,10 +2061,16 @@
               if (l > 0) l = Math.pow(l, 1 / ditherConfig.gamma);
               return l < 0 ? 0 : l > 1 ? 1 : l;
             }
-            let lum = adjustLum(pixels);
-            if (blurredPixels && prox > 0) {
-              const blend = prox * ditherConfig.mouseBlurAmount;
-              lum = lum * (1 - blend) + adjustLum(blurredPixels) * blend;
+            let lum;
+            if (outOfBounds) {
+              // Force off-cell branch so the proximity bar renders.
+              lum = -1;
+            } else {
+              lum = adjustLum(pixels);
+              if (blurredPixels && prox > 0) {
+                const blend = prox * ditherConfig.mouseBlurAmount;
+                lum = lum * (1 - blend) + adjustLum(blurredPixels) * blend;
+              }
             }
 
             let si;
@@ -2130,14 +2104,18 @@
       let fadeOutTimer    = null;
       let startTimer      = null;
       let brightnessRAF   = null;
-      const START_DELAY            = 300; // ms to wait before brightness anim
-      const BRIGHTNESS_DURATION    = 2000; // ms to ramp brightness in
-      const BRIGHTNESS_FROM        = -1;
+      let mouseBlurRAF    = null;
+      let hasStartedOnce  = false;
+      const START_DELAY_FIRST        = 300;  // ms before brightness anim on first run (syncs with intro exit)
+      const START_DELAY_RETURN       = 0;    // ms before brightness anim when re-entering slide 0 (loop / scroll)
+      const BRIGHTNESS_DURATION      = 2000; // ms to ramp brightness in
+      const BRIGHTNESS_FROM          = -1;
+      const MOUSE_BLUR_OUT_DURATION  = 300;  // ms to fade out proximity effect
 
-      function tweenBrightness(from, to, duration) {
+      function tweenBrightness(from, to, duration, updateUI = true) {
         if (brightnessRAF) cancelAnimationFrame(brightnessRAF);
-        const slider  = document.getElementById('ctrl-dither-brightness');
-        const display = document.getElementById('val-dither-brightness');
+        const slider  = updateUI ? document.getElementById('ctrl-dither-brightness') : null;
+        const display = updateUI ? document.getElementById('val-dither-brightness')  : null;
         const t0 = performance.now();
         function step(now) {
           const t = Math.min(1, (now - t0) / duration);
@@ -2152,43 +2130,78 @@
         brightnessRAF = requestAnimationFrame(step);
       }
 
+      function tweenMouseBlurAmount(from, to, duration) {
+        if (mouseBlurRAF) cancelAnimationFrame(mouseBlurRAF);
+        const t0 = performance.now();
+        function step(now) {
+          const t = Math.min(1, (now - t0) / duration);
+          const eased = 1 - Math.pow(1 - t, 3);
+          ditherConfig.mouseBlurAmount = from + (to - from) * eased;
+          if (t < 1) mouseBlurRAF = requestAnimationFrame(step);
+          else        mouseBlurRAF = null;
+        }
+        mouseBlurRAF = requestAnimationFrame(step);
+      }
+
       return {
         start() {
           if (fadeOutTimer) { clearTimeout(fadeOutTimer); fadeOutTimer = null; }
           if (startTimer)   { clearTimeout(startTimer);   startTimer   = null; }
           if (brightnessRAF){ cancelAnimationFrame(brightnessRAF); brightnessRAF = null; }
+          if (mouseBlurRAF) { cancelAnimationFrame(mouseBlurRAF);  mouseBlurRAF  = null; }
 
-          // Capture target brightness (respects user-tweaked preset value), then
-          // snap to BRIGHTNESS_FROM immediately so the canvas is uniformly dark.
-          const targetBrightness = ditherConfig.brightness;
+          // Restore mouseBlurAmount from the slider (the canonical user value)
+          const mbSlider = document.getElementById('ctrl-dither-mouse-blur-amount');
+          if (mbSlider) ditherConfig.mouseBlurAmount = parseFloat(mbSlider.value);
+
+          // Capture target brightness from the slider (canonical user value),
+          // not from ditherConfig.brightness which may be -1 after a fadeOut.
+          const brSlider = document.getElementById('ctrl-dither-brightness');
+          const targetBrightness = brSlider ? parseFloat(brSlider.value) : 0;
           ditherConfig.brightness = BRIGHTNESS_FROM;
           bgCanvas.style.transition = 'none';
           bgCanvas.style.opacity    = '1';
           video.play().catch(() => {});
           if (!rafId) render();
 
-          startTimer = setTimeout(() => {
-            startTimer = null;
+          const delay = hasStartedOnce ? START_DELAY_RETURN : START_DELAY_FIRST;
+          hasStartedOnce = true;
+          if (delay <= 0) {
             tweenBrightness(BRIGHTNESS_FROM, targetBrightness, BRIGHTNESS_DURATION);
-          }, START_DELAY);
+          } else {
+            startTimer = setTimeout(() => {
+              startTimer = null;
+              tweenBrightness(BRIGHTNESS_FROM, targetBrightness, BRIGHTNESS_DURATION);
+            }, delay);
+          }
         },
         stop() {
           if (startTimer)    { clearTimeout(startTimer);    startTimer    = null; }
           if (fadeOutTimer)  { clearTimeout(fadeOutTimer);  fadeOutTimer  = null; }
           if (brightnessRAF) { cancelAnimationFrame(brightnessRAF); brightnessRAF = null; }
+          if (mouseBlurRAF)  { cancelAnimationFrame(mouseBlurRAF);  mouseBlurRAF  = null; }
           if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
           video.pause();
         },
         fadeOut(duration) {
           if (startTimer)    { clearTimeout(startTimer);    startTimer    = null; }
           if (brightnessRAF) { cancelAnimationFrame(brightnessRAF); brightnessRAF = null; }
-          bgCanvas.style.transition = `opacity ${duration}ms ease-in-out`;
-          bgCanvas.style.opacity = '0';
+          if (fadeOutTimer)  { clearTimeout(fadeOutTimer);  fadeOutTimer  = null; }
+
+          const brightnessOutDuration = 1000;
+          const opacityOutDuration    = 200;
+          tweenBrightness(ditherConfig.brightness, BRIGHTNESS_FROM, brightnessOutDuration, /*updateUI=*/ false);
+          tweenMouseBlurAmount(ditherConfig.mouseBlurAmount, 0, MOUSE_BLUR_OUT_DURATION);
+
           fadeOutTimer = setTimeout(() => {
             fadeOutTimer = null;
-            if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-            video.pause();
-          }, duration);
+            bgCanvas.style.transition = `opacity ${opacityOutDuration}ms ease-in-out`;
+            bgCanvas.style.opacity = '0';
+            setTimeout(() => {
+              if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+              video.pause();
+            }, opacityOutDuration);
+          }, brightnessOutDuration);
         },
         setSource(name) {
           const next = videos[name];
