@@ -89,15 +89,72 @@
       scrollbar-width: none;
     }
 
+    body.intro-active .slides {
+      overflow: hidden;
+    }
+
     .slides::-webkit-scrollbar { display: none; }
 
     .slide {
+      position: relative;
       height: 100vh;
       scroll-snap-align: start;
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 80px 120px;
+    }
+
+    /* ── Slide button ── */
+    .slide-btn-wrap {
+      position: absolute;
+      bottom: 24px;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+    }
+    .slide-btn {
+      display: inline-block;
+      opacity: 0;
+      text-decoration: none;
+      color: var(--color-text);
+      background: rgba(0, 0, 0, 0.06);
+      border-radius: 100px;
+      padding: 9px 18px;
+      font-size: 14px;
+      font-family: 'Untitled Sans', sans-serif;
+      font-weight: 400;
+      letter-spacing: -0.01em;
+      -webkit-font-smoothing: antialiased;
+      cursor: pointer;
+      transform-origin: center top;
+    }
+    .slide-btn:hover {
+      background: rgba(0, 0, 0, 0.1);
+    }
+    @keyframes btn-hue-stretch-y {
+      0%   {
+        opacity: 0;
+        transform: scaleY(var(--stretch-amount, 3));
+        filter: blur(var(--stretch-blur, 8px)) hue-rotate(var(--hue-angle, 180deg));
+        background-color: var(--hue-color, #FFDCFF);
+        color: #fff;
+      }
+      50%  { background-color: var(--hue-color, #FFDCFF);}
+      100% {
+        opacity: 1;
+        transform: scaleY(1);
+        filter: blur(0) hue-rotate(0deg);
+        background-color: rgba(0, 0, 0, 0.06);
+        color: var(--color-text);
+      }
+    }
+    .slide-btn.animating {
+      animation-name: btn-hue-stretch-y;
+      animation-fill-mode: both;
+      animation-timing-function: var(--easing, cubic-bezier(0.87, 0, 0.13, 1));
+      animation-duration: var(--duration, 360ms);
     }
 
     .slide-text {
@@ -114,14 +171,14 @@
       opacity: 1;
     }
 
-    /* "Science Fiction®" — first two words of slide 0 */
+    /* "Science Fiction®" — first two words of slide 1 */
     /* per-word mode: .word is a direct child */
-    .slide[data-index="0"] .slide-text > .word:nth-child(-n+2) {
+    .slide[data-index="1"] .slide-text > .word:nth-child(-n+2) {
       font-family: 'Rhymes Text', serif;
       font-weight: 500;
     }
     /* per-letter mode: letters are inside .word-group wrappers */
-    .slide[data-index="0"] .slide-text > .word-group:nth-child(-n+2) .word {
+    .slide[data-index="1"] .slide-text > .word-group:nth-child(-n+2) .word {
       font-family: 'Rhymes Text', serif;
       font-weight: 500;
     }
@@ -208,11 +265,12 @@
       to   { opacity: 1; }
     }
 
-    /* Effect: stretch-y — scaleY + blur in, color1→color2 during animation, color2→black after */
+    /* Effect: stretch-y — scaleY + blur in, C1→C2→text color entirely in CSS */
     @keyframes word-stretch-y {
-      from { opacity: 0; transform: scaleY(var(--stretch-amount, 3)); filter: blur(var(--stretch-blur, 8px)); color: var(--stretch-color1, #00ccff); color: var(--stretch-color1, color(display-p3 0 0.84 1)); }
-      20%  { color: var(--stretch-color1, #00ccff); color: var(--stretch-color1, color(display-p3 0 0.84 1)); }
-      to   { opacity: 1; transform: scaleY(1); filter: blur(0); color: var(--stretch-color2, #ff75e1); color: var(--stretch-color2, color(display-p3 1 0.46 0.89)); }
+      0%   { opacity: 0; transform: scaleY(var(--stretch-amount, 3)); filter: blur(var(--stretch-blur, 8px)); color: var(--stretch-color1, #00ccff); color: var(--stretch-color1, color(display-p3 0 0.84 1)); }
+      5%  { opacity: 1; color: var(--stretch-color1, #00ccff); color: var(--stretch-color1, color(display-p3 0 0.84 1)); }
+      50%  { color: var(--stretch-color2, #ff75e1); color: var(--stretch-color2, color(display-p3 1 0.46 0.89)); }
+      100% { opacity: 1; transform: scaleY(1); filter: blur(0); color: var(--color-text); }
     }
 
     .slide-text[data-effect="stretch-y"].animating .word {
@@ -220,15 +278,27 @@
       animation-name: word-stretch-y;
     }
 
-    /* Effect: hue-stretch-y — same stretch but color stays constant; hue-rotate spins across full animation */
+    /* Effect: hue-stretch-y (Hue Warp 1) — color holds at hue-color; JS fades to text after */
     @keyframes word-hue-stretch-y {
-      from { opacity: 0; transform: scaleY(var(--stretch-amount, 3)); filter: blur(var(--stretch-blur, 8px)) hue-rotate(var(--hue-angle, 180deg)); color: var(--hue-color, #f113f4); color: var(--hue-color, color(display-p3 0.945 0.071 0.957)); }
-      to   { opacity: 1; transform: scaleY(1); filter: blur(0) hue-rotate(0deg); color: var(--hue-color, #f113f4); color: var(--hue-color, color(display-p3 0.945 0.071 0.957)); }
+      0%   { opacity: 0; transform: scaleY(var(--stretch-amount, 3)); filter: blur(var(--stretch-blur, 8px)) hue-rotate(var(--hue-angle, 180deg)); color: var(--hue-color, #f113f4); color: var(--hue-color, color(display-p3 0.945 0.071 0.957)); }
+      100% { opacity: 1; transform: scaleY(1); filter: blur(0) hue-rotate(0deg); color: var(--hue-color, #f113f4); color: var(--hue-color, color(display-p3 0.945 0.071 0.957)); }
     }
 
     .slide-text[data-effect="hue-stretch-y"].animating .word {
       transform-origin: center top;
       animation-name: word-hue-stretch-y;
+    }
+
+    /* Effect: hue-stretch-y-2 (Hue Warp 2) — same stretch, hue-color → text color entirely in CSS */
+    @keyframes word-hue-stretch-y-2 {
+      0%   { opacity: 0; transform: scaleY(var(--stretch-amount, 3)); filter: blur(var(--stretch-blur, 8px)) hue-rotate(var(--hue-angle, 180deg)); color: var(--hue-color, #f113f4); color: var(--hue-color, color(display-p3 0.945 0.071 0.957)); }
+      50%   { color: var(--hue-color, #f113f4); color: var(--hue-color, color(display-p3 0.945 0.071 0.957)); }
+      100% { opacity: 1; transform: scaleY(1); filter: blur(0) hue-rotate(0deg); color: var(--color-text); }
+    }
+
+    .slide-text[data-effect="hue-stretch-y-2"].animating .word {
+      transform-origin: center top;
+      animation-name: word-hue-stretch-y-2;
     }
 
 
@@ -399,25 +469,51 @@
       z-index: 201;
       font-family: 'Untitled Sans', sans-serif;
       font-weight: 500;
-      font-size: clamp(40px, 5.5vw, 80px);
+      font-size: clamp(40px, 5.5vw, 120px);
       letter-spacing: -0.01em;
       color: #fff;
       color: color(display-p3 1 1 1);
       opacity: 0;
-      filter: blur(16px);
       white-space: nowrap;
       pointer-events: none;
       -webkit-font-smoothing: antialiased;
-      transition: opacity 3s 0.5s ease-in-out, filter 3s 0.5s ease-in-out,
-                  left 0.4s ease-in-out,
-                  right 0.4s ease-in-out,
-                  font-size 0.4s ease-in-out,
-                  color 0.4s ease-in-out;
+      transition: left 0.4s cubic-bezier(0.77, 0, 0.175, 1),
+                  right 0.4s cubic-bezier(0.77, 0, 0.175, 1),
+                  font-size 0.4s cubic-bezier(0.77, 0, 0.175, 1),
+                  color 0.4s cubic-bezier(0.77, 0, 0.175, 1);
     }
-    #intro-word-sci { left: 50px; }
-    #intro-word-fi  { right: 50px; }
+    #intro-word-sci { left: 100px; }
+    #intro-word-fi  { right: 100px; }
 
-    #intro-word-sci.p1, #intro-word-fi.p1 { opacity: 1; filter: blur(0); }
+    /* Hue-stretch animation for intro words — fires when phase 2 begins */
+    @keyframes intro-word-in {
+      0%  {
+        opacity: 0;
+        transform: translateY(-50%) scaleY(var(--stretch-amount, 3));
+        filter: blur(var(--stretch-blur, 8px)) hue-rotate(var(--hue-angle, 180deg));
+        color: var(--hue-color, #fd43ff);
+        color: var(--hue-color, color(display-p3 0.992 0.263 1));
+      }
+      50% {
+        color: var(--hue-color, #fd43ff);
+        color: var(--hue-color, color(display-p3 0.992 0.263 1));
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(-50%) scaleY(1);
+        filter: blur(0) hue-rotate(0deg);
+        color: var(--color-text);
+      }
+    }
+    #intro-word-sci.intro-word-anim,
+    #intro-word-fi.intro-word-anim {
+      transform-origin: center top;
+      animation-name: intro-word-in;
+      animation-timing-function: cubic-bezier(0.87, 0, 0.13, 1);
+      animation-fill-mode: forwards;
+      transition: none !important;
+    }
+
     #intro-word-sci.p2 { left: 20px; font-size: 13px; color: var(--color-text); }
     #intro-word-fi.p2  { font-size: 13px; color: var(--color-text); }
 
@@ -427,7 +523,7 @@
       overflow: hidden;
       max-width: 600px;
       vertical-align: top;
-      transition: max-width 0.4s ease-in-out, opacity 0.4s ease-in-out;
+      transition: max-width 0.4s cubic-bezier(0.77, 0, 0.175, 1), opacity 0.4s cubic-bezier(0.77, 0, 0.175, 1);
     }
     .p2 .intro-drop { max-width: 0; opacity: 0; }
 
@@ -470,22 +566,16 @@
       .p2 .intro-drop { max-width: 600px; opacity: 1; }
     }
 
-    /* Slide 5: inverted background — black in light mode, white in dark mode */
-    .slide[data-index="5"] {
-      background: var(--color-text);
-    }
-
-    /* Expanded intro words (slide 5) — overrides p2 to show full Science / Fiction */
+    /* Expanded intro words on butterfly slide — overrides p2 to show full Science / Fiction */
     #intro-word-sci.expanded {
       left: 50px;
-      font-size: clamp(40px, 5.5vw, 80px);
-      color: var(--color-bg);
+      font-size: clamp(40px, 5.5vw, 120px);
+      color: var(--color-text);
     }
     #intro-word-fi.expanded {
-      font-size: clamp(40px, 5.5vw, 80px);
-      color: var(--color-bg);
+      font-size: clamp(40px, 5.5vw, 120px);
+      color: var(--color-text);
     }
-    /* Re-reveal the collapsed suffix spans */
     .p2.expanded .intro-drop {
       max-width: 600px;
       opacity: 1;
@@ -499,7 +589,7 @@
       background: #000;
       background: color(display-p3 0 0 0);
       pointer-events: all;
-      transition: opacity 1s ease;
+      transition: opacity 0.5s ease;
     }
     #intro.p2 { opacity: 0; pointer-events: none; }
 
@@ -510,7 +600,7 @@
       transform: translate(-50%, -50%);
       z-index: 201;
       pointer-events: none;
-      transition: transform 0.4s ease-in-out;
+      transition: transform 0.4s cubic-bezier(0.77, 0, 0.175, 1);
     }
     /* Exit: slide to top of screen + scale down */
     #intro-logo-large.exit {
@@ -528,6 +618,107 @@
       .slide-text { font-size: 28px; }
       #dev-sidebar { display: none; }
     }
+
+    /* ── Dither control panel ── */
+    #dither-panel {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 202;
+      width: 220px;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 14px;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    #dither-panel.visible {
+      opacity: 1;
+      pointer-events: all;
+    }
+    #dither-panel .dp-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+    }
+    #dither-panel .dp-title {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+      color: #aaa;
+    }
+    #dither-panel .dp-toggle {
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      font-size: 11px;
+      color: #aaa;
+      line-height: 1;
+      transition: transform 0.2s ease;
+    }
+    #dither-panel.closed .dp-toggle {
+      transform: rotate(-90deg);
+    }
+    #dither-panel .dp-body {
+      margin-top: 12px;
+    }
+    #dither-panel.closed .dp-body {
+      display: none;
+    }
+    #dither-panel .dp-ctrl {
+      margin-bottom: 10px;
+    }
+    #dither-panel .dp-ctrl:last-child {
+      margin-bottom: 0;
+    }
+    #dither-panel .dp-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 3px;
+    }
+    #dither-panel .dp-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #888;
+    }
+    #dither-panel .dp-val {
+      font-size: 11px;
+      color: #333;
+      font-variant-numeric: tabular-nums;
+    }
+    #dither-panel input[type="range"] {
+      width: 100%;
+      display: block;
+      cursor: pointer;
+      accent-color: #0a0a0a;
+      margin: 0;
+    }
+
+    /* ── Dither background ── */
+    #dither-bg {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      pointer-events: none;
+      z-index: 199;
+      opacity: 0;
+      transition: opacity 0.4s ease-in-out;
+    }
   </style>
 </head>
 <body>
@@ -535,22 +726,22 @@
 
   <div class="slides" id="slides">
 
-    <section class="slide" data-index="0">
+    <!-- Slide 0: butterfly -->
+    <section class="slide" data-index="0"></section>
+
+    <section class="slide" data-index="1">
       <p class="slide-text" data-effect="hue-stretch-y">
         Science Fiction® is a software company turning frontier technology into iconic products.
       </p>
     </section>
 
-    <section class="slide" data-index="1">
+    <section class="slide" data-index="2">
       <p class="slide-text" data-effect="hue-stretch-y">
         A small team of designers &amp; technologists who combine art, science, and internet culture to make the impossible inevitable.
       </p>
-    </section>
-
-    <section class="slide" data-index="2">
-      <p class="slide-text" data-effect="hue-stretch-y">
-        Jobs
-      </p>
+      <div class="slide-btn-wrap">
+        <a class="slide-btn" href="#">Open roles</a>
+      </div>
     </section>
 
     <section class="slide" data-index="3">
@@ -565,9 +756,8 @@
       </p>
     </section>
 
-    <section class="slide" data-index="5">
-      <!-- No slide-text: Science/Fiction word elements expand to fill this slide -->
-    </section>
+    <!-- Loop sentinel: snapping to this jumps back to slide 0 -->
+    <section class="slide loop-sentinel"></section>
 
   </div>
 
@@ -584,7 +774,8 @@
           <option value="blur">Blur</option>
           <option value="blob">Blob Text</option>
           <option value="stretch-y">Stretch In</option>
-          <option value="hue-stretch-y" selected>Hue Stretch</option>
+          <option value="hue-stretch-y">Hue Warp 1</option>
+          <option value="hue-stretch-y-2" selected>Hue Warp 2</option>
         </select>
       </div>
 
@@ -593,9 +784,9 @@
       <div class="sb-ctrl">
         <div class="sb-ctrl-header">
           <span class="sb-label">Duration</span>
-          <span class="sb-val" id="val-duration">500ms</span>
+          <span class="sb-val" id="val-duration">360ms</span>
         </div>
-        <input type="range" id="ctrl-duration" min="80" max="1200" value="500" step="10">
+        <input type="range" id="ctrl-duration" min="80" max="1200" value="360" step="10">
       </div>
 
       <div class="sb-ctrl">
@@ -679,21 +870,21 @@
       </div>
 
       <!-- Stretch + Blur (shared) -->
-      <div class="ctrl-group" data-for="stretch-y hue-stretch-y">
+      <div class="ctrl-group" data-for="stretch-y hue-stretch-y hue-stretch-y-2">
         <hr class="sb-div">
         <div class="sb-ctrl">
           <div class="sb-ctrl-header">
             <span class="sb-label">Stretch</span>
-            <span class="sb-val" id="val-stretch-amount">2.4×</span>
+            <span class="sb-val" id="val-stretch-amount">2×</span>
           </div>
-          <input type="range" id="ctrl-stretch-amount" min="1" max="8" value="2.4" step="0.1">
+          <input type="range" id="ctrl-stretch-amount" min="1" max="8" value="2" step="0.1">
         </div>
         <div class="sb-ctrl">
           <div class="sb-ctrl-header">
             <span class="sb-label">Blur</span>
-            <span class="sb-val" id="val-stretch-blur">6px</span>
+            <span class="sb-val" id="val-stretch-blur">5px</span>
           </div>
-          <input type="range" id="ctrl-stretch-blur" min="0" max="24" value="6" step="1">
+          <input type="range" id="ctrl-stretch-blur" min="0" max="24" value="5" step="1">
         </div>
       </div>
 
@@ -707,23 +898,23 @@
         </div>
       </div>
 
-      <!-- Color + Hue angle (Hue Stretch only) -->
-      <div class="ctrl-group" data-for="hue-stretch-y">
+      <!-- Color + Hue angle (Hue Warp 1 + 2) -->
+      <div class="ctrl-group" data-for="hue-stretch-y hue-stretch-y-2">
         <div class="sb-row">
           <span class="sb-label">Color</span>
-          <input type="color" id="ctrl-hue-color" value="#f113f4">
+          <input type="color" id="ctrl-hue-color" value="#fd43ff">
         </div>
         <div class="sb-ctrl">
           <div class="sb-ctrl-header">
             <span class="sb-label">Hue °</span>
-            <span class="sb-val" id="val-hue-angle">250°</span>
+            <span class="sb-val" id="val-hue-angle">180°</span>
           </div>
-          <input type="range" id="ctrl-hue-angle" min="0" max="720" value="250" step="5">
+          <input type="range" id="ctrl-hue-angle" min="0" max="720" value="180" step="5">
         </div>
       </div>
 
-      <!-- Fade Out (shared) -->
-      <div class="ctrl-group" data-for="stretch-y hue-stretch-y">
+      <!-- Fade Out (Hue Stretch only) -->
+      <div class="ctrl-group" data-for="hue-stretch-y">
         <div class="sb-ctrl">
           <div class="sb-ctrl-header">
             <span class="sb-label">Fade Out</span>
@@ -732,6 +923,7 @@
           <input type="range" id="ctrl-stretch-fade" min="100" max="2000" value="1600" step="50">
         </div>
       </div>
+
 
       <hr class="sb-div">
 
@@ -753,6 +945,7 @@
         <span class="sb-label" style="flex:1;">Dark Mode</span>
         <input type="checkbox" id="ctrl-dark-mode">
       </div>
+
     </div>
   </div>
 
@@ -765,35 +958,106 @@
     <canvas id="intro-canvas"></canvas>
   </div>
 
+  <!-- Butterfly video source for dither background -->
+  <video id="butterfly-video" src="./butterfly.mp4" muted loop playsinline style="display:none"></video>
+
+  <!-- Dither background — fixed behind intro overlay, fades out on collapse -->
+  <canvas id="dither-bg" aria-hidden="true"></canvas>
+
+  <!-- Dither control panel — shown during butterfly intro step -->
+  <div id="dither-panel" class="closed">
+    <div class="dp-header" id="dither-panel-toggle">
+      <span class="dp-title">Dither</span>
+      <button class="dp-toggle">▾</button>
+    </div>
+    <div class="dp-body">
+    <div class="dp-ctrl">
+      <div class="dp-row"><span class="dp-label">Grid Scale</span><span class="dp-val" id="val-dither-cell">7px</span></div>
+      <input type="range" id="ctrl-dither-cell" min="4" max="32" value="7" step="1">
+    </div>
+    <div class="dp-ctrl">
+      <div class="dp-row"><span class="dp-label">Brightness</span><span class="dp-val" id="val-dither-brightness">0.00</span></div>
+      <input type="range" id="ctrl-dither-brightness" min="-1" max="1" value="0" step="0.05">
+    </div>
+    <div class="dp-ctrl">
+      <div class="dp-row"><span class="dp-label">Contrast</span><span class="dp-val" id="val-dither-contrast">1.85</span></div>
+      <input type="range" id="ctrl-dither-contrast" min="0.1" max="4" value="1.85" step="0.05">
+    </div>
+    <div class="dp-ctrl">
+      <div class="dp-row"><span class="dp-label">Gamma</span><span class="dp-val" id="val-dither-gamma">1.2</span></div>
+      <input type="range" id="ctrl-dither-gamma" min="0.2" max="4" value="1.2" step="0.1">
+    </div>
+    <div class="dp-ctrl">
+      <div class="dp-row"><span class="dp-label">T1 Dense</span><span class="dp-val" id="val-dither-t1">0.98</span></div>
+      <input type="range" id="ctrl-dither-t1" min="0" max="1" value="0.98" step="0.01">
+    </div>
+    <div class="dp-ctrl">
+      <div class="dp-row"><span class="dp-label">T2 Mid</span><span class="dp-val" id="val-dither-t2">0.71</span></div>
+      <input type="range" id="ctrl-dither-t2" min="0" max="1" value="0.71" step="0.01">
+    </div>
+    <div class="dp-ctrl">
+      <div class="dp-row"><span class="dp-label">T3 Sparse</span><span class="dp-val" id="val-dither-t3">0.55</span></div>
+      <input type="range" id="ctrl-dither-t3" min="0" max="1" value="0.55" step="0.01">
+    </div>
+    <div class="dp-ctrl" style="display:flex; align-items:center; justify-content:space-between; margin-top:4px;">
+      <span class="dp-label">Mouse Interaction</span>
+      <input type="checkbox" id="ctrl-dither-proximity" checked>
+    </div>
+    <div class="dp-ctrl">
+      <div class="dp-row"><span class="dp-label">Blur Size</span><span class="dp-val" id="val-dither-mouse-blur">3</span></div>
+      <input type="range" id="ctrl-dither-mouse-blur" min="0" max="12" value="3" step="0.5">
+    </div>
+    <div class="dp-ctrl">
+      <div class="dp-row"><span class="dp-label">Blur Amount</span><span class="dp-val" id="val-dither-mouse-blur-amount">1.0</span></div>
+      <input type="range" id="ctrl-dither-mouse-blur-amount" min="0" max="1" value="1" step="0.05">
+    </div>
+    </div><!-- /.dp-body -->
+  </div>
+
   <!-- Intro overlay (removed after animation) -->
   <div id="intro"></div>
 
 <script>
-    const slides = Array.from(document.querySelectorAll('.slide'));
+    const slides = Array.from(document.querySelectorAll('.slide:not(.loop-sentinel)'));
     const slidesContainer = document.getElementById('slides');
     let currentSlide = 0;
+    let scrollDirection = 1; // 1 = down, -1 = up
     let introRunning = true;
     document.body.classList.add('intro-active');
 
     // ── Config ──
     const config = {
-      effect: 'hue-stretch-y',
-      duration: 420,
-      stagger: 60,
+      effect: 'hue-stretch-y-2',
+      duration: 360,
+      stagger: 85,
       pauseAfterComma: 320,
       easing: 'cubic-bezier(0.87, 0, 0.13, 1)',
       blur: 12,
       translate: 12,
       strokeWidth: 10,
       scaleFrom: 0.75,
-      stretchAmount: 3,
-      stretchBlur: 6,
+      stretchAmount: 2,
+      stretchBlur: 5,
       stretchColor1: CSS.supports('color', 'color(display-p3 0 0 0)') ? 'color(display-p3 0 0.84 1)' : '#00ccff',
       stretchColor2: CSS.supports('color', 'color(display-p3 0 0 0)') ? 'color(display-p3 1 0.46 0.89)' : '#ff75e1',
+      hueColor: CSS.supports('color', 'color(display-p3 0 0 0)') ? 'color(display-p3 0.992 0.263 1)' : '#fd43ff',
+      hueAngle: 180,
       stretchFadeDuration: 1600,
-      hueColor: CSS.supports('color', 'color(display-p3 0 0 0)') ? 'color(display-p3 0.945 0.071 0.957)' : '#f113f4',
-      hueAngle: 250,
       perLetter: false,
+    };
+
+    const ditherConfig = {
+      cell:       7,
+      brightness: 0,
+      contrast:   1.85,
+      gamma:      1.2,
+      t1:         0.98,
+      t2:         0.71,
+      t3:         0.55,
+      proximityEnabled: true,
+      proximityRadius: 220,
+      mouseBlur: 3,
+      mouseBlurAmount: 1.0,
     };
 
     const effectDefaults = {
@@ -879,7 +1143,7 @@
       el.style.setProperty('--stretch-color1', config.stretchColor1);
       el.style.setProperty('--stretch-color2', config.stretchColor2);
       el.style.setProperty('--hue-color', config.hueColor);
-      el.style.setProperty('--hue-angle', config.hueAngle + 'deg');
+      el.style.setProperty('--hue-angle', config.hueAngle * -1 + 'deg');
       el.dataset.effect = config.effect;
     }
 
@@ -950,8 +1214,7 @@
     let blobController = null;
     let stretchColorController = null;
 
-    // ── Phase 2 color fade: fromColor → text color, triggered per-word after animationend ──
-    // Used by both stretch-y (fromColor = stretchColor2) and hue-stretch-y (fromColor = hueColor).
+    // ── Phase 2 color fade: hueColor → text color, triggered per-word after animationend ──
     function animateStretchColors(words, fromColor) {
       let cancelled = false;
       const d = config.stretchFadeDuration;
@@ -965,7 +1228,7 @@
           // animation so fill-mode stops overriding the cascade.
           w.style.opacity = '1';
           w.style.color = fromColor;
-          w.style.animationName = 'none'; // stop fill-mode from re-locking color2
+          w.style.animationName = 'none';
 
           // Double-rAF: let the browser register the killed-animation state,
           // then start the transition to the inherited text color.
@@ -974,12 +1237,10 @@
             w.style.transition = `color ${d}ms ease`;
             requestAnimationFrame(() => {
               if (cancelled) return;
-              w.style.color = ''; // revert to cascade → var(--color-text)
+              w.style.color = '';
               setTimeout(() => {
                 if (cancelled) return;
                 w.style.opacity = '';
-                // Leave animationName:'none' — clearing it would let the CSS rule
-                // restart the animation. animateIn wipes it on the next replay.
                 w.style.transition = '';
               }, d);
             });
@@ -1020,10 +1281,15 @@
         w.style.opacity = '';
         w.style.animationName = '';
         w.style.transition = '';
+        w.style.transformOrigin = '';
       });
+
+      const isStretch = config.effect === 'hue-stretch-y' || config.effect === 'hue-stretch-y-2' || config.effect === 'stretch-y';
+      const transformOriginOverride = isStretch && scrollDirection < 0 ? 'center calc(100% + 4px)' : '';
 
       let cumDelay = 0;
       el.querySelectorAll('.word').forEach((w) => {
+        w.style.transformOrigin = transformOriginOverride;
         w.style.animationDelay = cumDelay + 'ms';
         cumDelay += config.stagger;
         if (w.textContent.trimEnd().endsWith(',')) cumDelay += config.pauseAfterComma;
@@ -1036,33 +1302,101 @@
             Array.from(el.querySelectorAll('.word')),
             config.duration, config.strokeWidth, config.blur
           );
-        } else if (config.effect === 'stretch-y') {
-          stretchColorController = animateStretchColors(Array.from(el.querySelectorAll('.word')), config.stretchColor2);
-        } else if (config.effect === 'hue-stretch-y') {
+        } else if (config.effect === 'hue-stretch-y') { // Hue Warp 1 only — Hue Warp 2 transitions in CSS
           stretchColorController = animateStretchColors(Array.from(el.querySelectorAll('.word')), config.hueColor);
         }
       });
     }
 
+    // ── Slide 0 scroll trigger — fires squish+collapse the moment user scrolls away ──
+    let _slide0ScrollFn = null;
+    function attachSlide0ScrollTrigger() {
+      detachSlide0ScrollTrigger();
+      // Delay by two frames to skip any settling scroll events after scrollTop=0
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        let prevScrollTop = slidesContainer.scrollTop;
+        _slide0ScrollFn = () => {
+          const cur = slidesContainer.scrollTop;
+          // Require a meaningful scroll (>10% slide height) to avoid false triggers
+          if (cur > prevScrollTop && cur > window.innerHeight * 0.1) {
+            detachSlide0ScrollTrigger();
+            collapseIntroWords();
+            ditherBg?.fadeOut(400);
+          }
+          prevScrollTop = cur;
+        };
+        slidesContainer.addEventListener('scroll', _slide0ScrollFn, { passive: true });
+      }));
+    }
+    function detachSlide0ScrollTrigger() {
+      if (_slide0ScrollFn) {
+        slidesContainer.removeEventListener('scroll', _slide0ScrollFn);
+        _slide0ScrollFn = null;
+      }
+    }
+
+    // ── Animate slide button in after the text words finish staggering ──
+    function animateBtn(btn, textEl) {
+      btn.classList.remove('animating');
+      void btn.offsetWidth;
+
+      // Find the delay of the last word to stagger after it
+      let maxDelay = 0;
+      if (textEl) {
+        textEl.querySelectorAll('.word').forEach(w => {
+          const d = parseFloat(w.style.animationDelay) || 0;
+          if (d > maxDelay) maxDelay = d;
+        });
+      }
+
+      btn.style.setProperty('--hue-color', CSS.supports('color', 'color(display-p3 0 0 0)')
+        ? 'color(display-p3 1 0.87 1);'
+        : '#FFDCFF');
+      btn.style.setProperty('--hue-angle', config.hueAngle * -1 + 'deg');
+      btn.style.setProperty('--stretch-amount', config.stretchAmount);
+      btn.style.setProperty('--stretch-blur', config.stretchBlur + 'px');
+      btn.style.setProperty('--duration', config.duration + 'ms');
+      btn.style.setProperty('--easing', config.easing);
+      btn.style.animationDelay = (maxDelay + config.stagger) + 'ms';
+
+      requestAnimationFrame(() => btn.classList.add('animating'));
+    }
+
     // ── IntersectionObserver — animate in on enter, reset on exit ──
     const observer = new IntersectionObserver(entries => {
       entries.forEach(entry => {
-        const slide   = entry.target;
+        const slide    = entry.target;
         const slideIdx = parseInt(slide.dataset.index);
-        const textEl  = slide.querySelector('.slide-text');
+        const textEl   = slide.querySelector('.slide-text');
+
+        // Loop sentinel: jump back to slide 0 seamlessly
+        if (slide.classList.contains('loop-sentinel')) {
+          if (entry.intersectionRatio >= 0.6) {
+            slidesContainer.scrollTop = 0;
+          }
+          return;
+        }
+
         if (entry.intersectionRatio >= 0.6) {
-          currentSlide = slides.indexOf(slide);
+          const newIdx = slides.indexOf(slide);
+          scrollDirection = newIdx >= currentSlide ? 1 : -1;
+          currentSlide = newIdx;
           if (textEl) animateIn(textEl);
-          if (slideIdx === 5) expandIntroWords();
+          const btn = slide.querySelector('.slide-btn');
+          if (btn) animateBtn(btn, textEl);
+          if (slideIdx === 0) { ditherBg?.start(); expandIntroWords(); attachSlide0ScrollTrigger(); }
         } else if (entry.intersectionRatio < 0.1) {
           if (textEl) textEl.classList.remove('animating');
-          if (slideIdx === 5) collapseIntroWords();
+          const btn = slide.querySelector('.slide-btn');
+          if (btn) { btn.classList.remove('animating'); btn.style.animationDelay = ''; }
+          if (slideIdx === 0) detachSlide0ScrollTrigger();
         }
       });
     }, { root: slidesContainer, threshold: [0, 0.1, 0.6] });
 
     function startObserving() {
       slides.forEach(slide => observer.observe(slide));
+      document.querySelectorAll('.loop-sentinel').forEach(s => observer.observe(s));
     }
 
     // ── Click/tap — advance to next slide (ignore clicks on sidebar / bottom btns) ──
@@ -1073,17 +1407,6 @@
       next.scrollIntoView({ behavior: 'smooth' });
     });
 
-    // ── Keyboard nav — scroll the container ──
-    document.addEventListener('keydown', e => {
-      if (introRunning) return;
-      if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
-        const next = slides[Math.min(currentSlide + 1, slides.length - 1)];
-        next.scrollIntoView({ behavior: 'smooth' });
-      } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
-        const prev = slides[Math.max(currentSlide - 1, 0)];
-        prev.scrollIntoView({ behavior: 'smooth' });
-      }
-    });
 
     // ── Controls ──
     function replay() {
@@ -1158,6 +1481,34 @@
       document.documentElement.classList.toggle('dark', e.target.checked);
     });
 
+    // ── Dither panel toggle ──
+    document.getElementById('dither-panel-toggle').addEventListener('click', () => {
+      document.getElementById('dither-panel').classList.toggle('closed');
+    });
+
+    // ── Dither controls ──
+    function bindDither(id, valId, key, decimals) {
+      const input   = document.getElementById(id);
+      const display = document.getElementById(valId);
+      input.addEventListener('input', () => {
+        const v = parseFloat(input.value);
+        ditherConfig[key] = v;
+        display.textContent = decimals === 0 ? v + 'px' : v.toFixed(decimals);
+      });
+    }
+    bindDither('ctrl-dither-cell',       'val-dither-cell',       'cell',       0);
+    bindDither('ctrl-dither-brightness', 'val-dither-brightness', 'brightness', 2);
+    bindDither('ctrl-dither-contrast',   'val-dither-contrast',   'contrast',   2);
+    bindDither('ctrl-dither-gamma',      'val-dither-gamma',      'gamma',      1);
+    bindDither('ctrl-dither-t1',         'val-dither-t1',         't1',         2);
+    bindDither('ctrl-dither-t2',         'val-dither-t2',         't2',         2);
+    bindDither('ctrl-dither-t3',         'val-dither-t3',         't3',         2);
+    document.getElementById('ctrl-dither-proximity').addEventListener('change', e => {
+      ditherConfig.proximityEnabled = e.target.checked;
+    });
+    bindDither('ctrl-dither-mouse-blur',        'val-dither-mouse-blur',        'mouseBlur',       1);
+    bindDither('ctrl-dither-mouse-blur-amount', 'val-dither-mouse-blur-amount', 'mouseBlurAmount', 2);
+
     document.getElementById('ctrl-per-letter').addEventListener('change', e => {
       config.perLetter = e.target.checked;
       if (config.perLetter) {
@@ -1192,6 +1543,7 @@
     let introWordFi  = null;
     let introFiW     = 0;   // width of "Fi" at 13px
     let wordsExpanded = false;
+    let _squishTimerId = null;
 
     function onFiResize() {
       if (!introWordFi || window.innerWidth <= 640 || wordsExpanded) return;
@@ -1205,7 +1557,19 @@
     function expandIntroWords() {
       if (!introWordSci || !introWordFi || wordsExpanded) return;
       if (window.innerWidth <= 640) return;
+
+      // Cancel any in-progress collapse (prevents the timeout removing .expanded mid-expand)
+      if (_squishTimerId) { clearTimeout(_squishTimerId); _squishTimerId = null; }
+
       window.removeEventListener('resize', onFiResize);
+      // Clear any inline animation/transition overrides from the intro so CSS defaults take over
+      introWordSci.style.animationName     = 'none';
+      introWordSci.style.animationDelay    = '0s';
+      introWordSci.style.animationDuration = '';
+      introWordSci.style.transition        = '';
+      introWordFi.style.animationName      = 'none';
+      introWordFi.style.animationDelay     = '0s';
+      introWordFi.style.animationDuration  = '';
       // Switch Fi: inline left → inline right (at current visual position), then animate to 50px
       const rect = introWordFi.getBoundingClientRect();
       introWordFi.style.transition = 'none';
@@ -1222,22 +1586,42 @@
     function collapseIntroWords() {
       if (!introWordSci || !introWordFi || !wordsExpanded) return;
       if (window.innerWidth <= 640) return;
-      // Switch Fi: inline right → inline left (at current visual position), then animate to p2 target
-      const rect = introWordFi.getBoundingClientRect();
-      introWordFi.style.transition = 'none';
-      introWordFi.style.right = 'auto';
-      introWordFi.style.left = rect.left + 'px';
-      introWordFi.offsetWidth; // force reflow
-      introWordFi.style.transition = '';
-      introWordFi.style.left = (window.innerWidth - 20 - introFiW) + 'px';
-      introWordSci.classList.remove('expanded');
-      introWordFi.classList.remove('expanded');
-      window.addEventListener('resize', onFiResize);
       wordsExpanded = false;
+
+      const squishEasing   = 'cubic-bezier(0.77, 0, 0.175, 1)';
+      const squishDuration = 300;
+
+      // Step 1: squish 50px toward center
+      introWordSci.style.transition = `left ${squishDuration}ms ${squishEasing}`;
+      introWordSci.style.left = '100px';
+      introWordFi.style.transition = `right ${squishDuration}ms ${squishEasing}`;
+      introWordFi.style.right = '100px';
+
+      _squishTimerId = setTimeout(() => {
+        _squishTimerId = null;
+        // Re-enable CSS transitions
+        introWordSci.style.transition = '';
+        introWordFi.style.transition = '';
+
+        // Switch Fi: right-anchored → left-anchored at current visual position
+        const rect = introWordFi.getBoundingClientRect();
+        introWordFi.style.transition = 'none';
+        introWordFi.style.right = 'auto';
+        introWordFi.style.left = rect.left + 'px';
+        introWordFi.offsetWidth; // force reflow
+        introWordFi.style.transition = '';
+
+        // Clear Sci's inline left so .p2 { left: 20px } transitions in
+        introWordSci.style.left = '';
+        introWordSci.classList.remove('expanded');
+        introWordFi.classList.remove('expanded');
+        introWordFi.style.left = (window.innerWidth - 20 - introFiW) + 'px';
+        window.addEventListener('resize', onFiResize);
+      }, squishDuration);
     }
 
     const seqConfig = {
-      frameCount: 240,          // total number of frames
+      frameCount: 180,          // total number of frames
       fps:        60,           // playback frame rate
       width:      510,          // native frame width  (@2x → canvas pixel buffer)
       height:     254,          // native frame height (@2x → canvas pixel buffer)
@@ -1272,7 +1656,10 @@
           ctx.clearRect(0, 0, canvas.width, canvas.height);
           if (imgs[frame].naturalWidth) ctx.drawImage(imgs[frame], 0, 0, canvas.width, canvas.height);
           last += ms;
-          if (++frame >= imgs.length) return;
+          if (++frame >= imgs.length) {
+            if (!exitFired) { exitFired = true; onExit(); }
+            return;
+          }
         }
         requestAnimationFrame(tick);
       }
@@ -1302,70 +1689,294 @@
 
       const isMobile = () => window.innerWidth <= 640;
 
-      // Phase 2 fires at the 3.6s mark — canvas exits upward, overlay fades, words move to edges.
-      // All DOM mutations are batched into a single rAF to land in one paint.
+      // Phase 2 fires at 3.6s:
+      //   1. Canvas exits upward, overlay fades to white.
+      //   2. Words animate IN simultaneously with hue-stretch effect (desktop only).
+      //   3. After animation + pause, words collapse to Sci/Fi at edges.
+      //   4. Main slide text starts animating.
       function triggerPhase2() {
         const mobile = isMobile();
-        const fiTargetLeft = mobile ? null : (window.innerWidth - 20 - introFiW);
+        const animDuration = config.duration; // match slide text animation duration
+        const wordStagger = 100;              // ms delay between Science and Fiction
+        const pauseAfterAnim = 500;           // ms to hold full-size words before collapse
+        const collapseAt = animDuration + wordStagger + pauseAfterAnim;
 
         requestAnimationFrame(() => {
-          if (!mobile) {
-            // Switch wordFi from CSS right-anchoring to left-anchoring at its CURRENT pixel
-            // position — this must happen before .p2 collapses .intro-drop, otherwise the
-            // right-anchored shrink would drag "Fi" rightward (the jump bug).
-            const rect = wordFi.getBoundingClientRect();
-            wordFi.style.transition = 'none';
-            wordFi.style.right = 'auto';
-            wordFi.style.left = rect.left + 'px';
-            wordFi.offsetWidth; // force reflow — commits position + transition:none together
-            wordFi.style.transition = ''; // re-enable CSS transition for the animated move
-          }
-
+          // Canvas exits, overlay fades, dither starts
           document.getElementById('intro-logo-large').classList.add('exit');
-          wordSci.classList.add('p2');
-          wordFi.classList.add('p2');
-          if (fiTargetLeft !== null) {
-            wordFi.style.left = fiTargetLeft + 'px';
-            // Start listening for resizes now that left is JS-controlled
-            window.addEventListener('resize', onFiResize);
-          }
           intro.classList.add('p2');
+          ditherBg?.start();
+
+          // Animate words in with hue-stretch (desktop only)
+          if (!mobile) {
+            [wordSci, wordFi].forEach((w, i) => {
+              w.style.setProperty('--hue-color', config.hueColor);
+              w.style.setProperty('--hue-angle', config.hueAngle + 'deg');
+              w.style.setProperty('--stretch-amount', config.stretchAmount);
+              w.style.setProperty('--stretch-blur', config.stretchBlur + 'px');
+              w.style.animationDuration = animDuration + 'ms';
+              w.style.animationDelay = (i * wordStagger) + 'ms';
+              w.classList.add('intro-word-anim');
+            });
+          }
         });
 
-        setTimeout(() => {
-          document.body.classList.remove('intro-active');
-          introRunning = false;
-          startObserving();
-        }, 400);
+        if (!mobile) {
+          // After animation ends: lock in visible state, then wait for user input to collapse
+          setTimeout(() => {
+            [wordSci, wordFi].forEach(w => {
+              w.style.opacity = '1';
+              w.style.filter = 'blur(0)';
+              w.style.color = 'var(--color-text)';
+              w.classList.remove('intro-word-anim');
+              w.style.animationDelay = '';
+            });
+            document.getElementById('dither-panel').classList.add('visible');
 
-        setTimeout(() => intro.remove(), 1100);
+            // Wait for click, scroll, or key press to collapse to Sci/Fi
+            function doCollapse(e) {
+              if (e && e.target && e.target.closest('#dither-panel')) return;
+              document.removeEventListener('click',      doCollapse);
+              document.removeEventListener('wheel',      doCollapse);
+              document.removeEventListener('touchstart', doCollapse);
+
+              ditherBg?.fadeOut(500);
+              document.getElementById('dither-panel').classList.remove('visible');
+
+              const squishEasing   = 'cubic-bezier(0.77, 0, 0.175, 1)';
+              const squishDuration = 500;
+
+              // Step 1: move words 50px toward each other
+              const sciRect = wordSci.getBoundingClientRect();
+              const fiRect  = wordFi.getBoundingClientRect();
+              wordSci.style.transition = `left ${squishDuration}ms ${squishEasing}`;
+              wordFi.style.transition  = `right ${squishDuration}ms ${squishEasing}`;
+              wordSci.style.left  = (sciRect.left + 100) + 'px';
+              wordFi.style.right  = (window.innerWidth - fiRect.right + 100) + 'px';
+
+              // Step 2: after squish, collapse to Sci/Fi at edges
+              setTimeout(() => {
+                wordSci.style.transition = '';
+                wordFi.style.transition  = '';
+
+                // Switch wordFi to left-anchoring before .p2 collapses .intro-drop
+                const rect = wordFi.getBoundingClientRect();
+                wordFi.style.transition = 'none';
+                wordFi.style.right = 'auto';
+                wordFi.style.left = rect.left + 'px';
+                wordFi.offsetWidth; // force reflow
+                wordFi.style.transition = '';
+
+                // Clear inline color + left so CSS p2 rules take effect
+                wordSci.style.color = '';
+                wordSci.style.left  = '';
+                wordFi.style.color  = '';
+
+                wordSci.classList.add('p2');
+                wordFi.classList.add('p2');
+                wordFi.style.left = (window.innerWidth - 20 - introFiW) + 'px';
+                window.addEventListener('resize', onFiResize);
+
+                setTimeout(() => {
+                  document.body.classList.remove('intro-active');
+                  introRunning = false;
+                  startObserving();
+                  // Skip the butterfly slide — land directly on slide 1
+                  slides[1].scrollIntoView({ behavior: 'instant' });
+                }, 150);
+
+                setTimeout(() => intro.remove(), 800);
+              }, squishDuration);
+            }
+
+            document.addEventListener('click',      doCollapse);
+            document.addEventListener('wheel',      doCollapse);
+            document.addEventListener('touchstart', doCollapse);
+          }, animDuration + wordStagger);
+
+        } else {
+          // Mobile: no word animation; start immediately
+          setTimeout(() => {
+            document.body.classList.remove('intro-active');
+            introRunning = false;
+            startObserving();
+          }, 400);
+          setTimeout(() => intro.remove(), 1000);
+        }
       }
 
-      // Preload frames in parallel with the initial fade-in delay.
-      let framesReady = false, p1Active = false;
-      let readyFrames = null;
-
+      // Load frames and 300ms black-screen delay in parallel; play when both are ready
+      let loadedImgs = null;
+      let delayDone  = false;
       function maybePlay() {
-        if (framesReady && p1Active) playFrames(canvas, readyFrames, seqConfig.fps, 3600, triggerPhase2);
+        if (loadedImgs && delayDone) playFrames(canvas, loadedImgs, seqConfig.fps, 2400, triggerPhase2);
       }
-
-      loadFrames(seqConfig, imgs => {
-        framesReady = true;
-        readyFrames = imgs;
-        maybePlay();
-      });
-
-      // Phase 1: blur-fade in "Science" / "Fiction" + canvas on black (t=300ms)
-      setTimeout(() => {
-        intro.classList.add('p1');
-        wordSci.classList.add('p1');
-        wordFi.classList.add('p1');
-        p1Active = true;
-        maybePlay();
-      }, 300);
+      loadFrames(seqConfig, imgs => { loadedImgs = imgs; maybePlay(); });
+      setTimeout(() => { delayDone = true; maybePlay(); }, 300);
     }
 
+    // ── Dither background engine ──
+    let ditherBg = null;
+
     runIntro();
+
+    function initDitherBg() {
+      const bgCanvas = document.getElementById('dither-bg');
+      const video    = document.getElementById('butterfly-video');
+      if (!bgCanvas || !video) return null;
+
+      const bgCtx      = bgCanvas.getContext('2d');
+      const offscreen  = document.createElement('canvas');
+      const offCtx     = offscreen.getContext('2d');
+      const offBlurred = document.createElement('canvas');
+      const offBlurCtx = offBlurred.getContext('2d');
+
+      // Shape paths (from sci-fi-studio/shapes.js)
+      const SHAPE_VIEWBOX = 64;
+      const SHAPES = [
+        new Path2D("M37 0C37 6.08722 37.6501 10.9695 39.1162 14.8174C42.8741 13.1333 46.787 10.1417 51.0918 5.83691L58.1631 12.9082C53.8588 17.2125 50.8658 21.1243 49.1816 24.8818C53.0297 26.3483 57.912 27 64 27V37C57.9123 37 53.0296 37.6499 49.1816 39.1162C50.8657 42.8742 53.8582 46.7869 58.1631 51.0918L51.0918 58.1631C46.7867 53.858 42.8743 50.8647 39.1162 49.1807C37.6497 53.0288 37 57.9119 37 64H27C27 57.9122 26.3492 53.0297 24.8828 49.1816C21.1251 50.8658 17.2128 53.8585 12.9082 58.1631L5.83691 51.0918C10.1417 46.787 13.1333 42.8741 14.8174 39.1162C10.9695 37.6501 6.08722 37 0 37V27C6.08756 27 10.9694 26.3481 14.8174 24.8818C13.1332 21.1244 10.1411 17.2124 5.83691 12.9082L12.9082 5.83691C17.2124 10.1411 21.1244 13.1332 24.8818 14.8174C26.3481 10.9694 27 6.08756 27 0H37Z"),
+        new Path2D("M27 0H37C37 20 44 27 64 27V37C44 37 37 44 37 64H27C27 44 20 37 0 37V27C20 27 27 20 27 0Z"),
+        new Path2D("M0 37V27H64V37H0Z"),
+      ];
+
+      // Settings are read live from ditherConfig each frame
+
+      let mouseX = -9999, mouseY = -9999;
+      let rafId  = null;
+
+      // Track mouse in canvas-pixel space
+      window.addEventListener('mousemove', e => {
+        const rect = bgCanvas.getBoundingClientRect();
+        mouseX = (e.clientX - rect.left) * (bgCanvas.width  / rect.width);
+        mouseY = (e.clientY - rect.top)  * (bgCanvas.height / rect.height);
+      });
+
+      function render() {
+        if (!video.videoWidth || !video.videoHeight) {
+          rafId = requestAnimationFrame(render);
+          return;
+        }
+
+        const W = window.innerWidth;
+        const H = window.innerHeight;
+        const CELL = ditherConfig.cell;
+        const cols = Math.ceil(W / CELL);
+        const rows = Math.ceil(H / CELL);
+        const outW = cols * CELL;
+        const outH = rows * CELL;
+
+        if (bgCanvas.width !== outW || bgCanvas.height !== outH) {
+          bgCanvas.width  = outW;
+          bgCanvas.height = outH;
+        }
+
+        // Downsample video → grid cells (cover fill)
+        offscreen.width  = cols;
+        offscreen.height = rows;
+        const vW = video.videoWidth, vH = video.videoHeight;
+        const scale = Math.max(cols / vW, rows / vH);
+        const dw = vW * scale, dh = vH * scale;
+        offCtx.drawImage(video, (cols - dw) / 2, (rows - dh) / 2, dw, dh);
+        const pixels = offCtx.getImageData(0, 0, cols, rows).data;
+
+        // Blurred version for proximity effect
+        let blurredPixels = null;
+        if (ditherConfig.proximityEnabled && ditherConfig.mouseBlur > 0) {
+          offBlurred.width  = cols;
+          offBlurred.height = rows;
+          offBlurCtx.filter = `blur(${ditherConfig.mouseBlur}px)`;
+          offBlurCtx.drawImage(video, (cols - dw) / 2, (rows - dh) / 2, dw, dh);
+          offBlurCtx.filter = 'none';
+          blurredPixels = offBlurCtx.getImageData(0, 0, cols, rows).data;
+        }
+
+        bgCtx.fillStyle = '#ffffff';
+        bgCtx.fillRect(0, 0, outW, outH);
+
+        const sf = CELL / SHAPE_VIEWBOX;
+        let lastColor = '';
+
+        for (let y = 0; y < rows; y++) {
+          for (let x = 0; x < cols; x++) {
+            const i = (y * cols + x) * 4;
+            // Proximity
+            let prox = 0;
+            if (ditherConfig.proximityEnabled) {
+              const cx   = (x + 0.5) * CELL;
+              const cy   = (y + 0.5) * CELL;
+              const dist = Math.sqrt((cx - mouseX) ** 2 + (cy - mouseY) ** 2);
+              prox = Math.pow(Math.max(0, 1 - dist / ditherConfig.proximityRadius), 2);
+            }
+
+            // Luminance — blend normal and blurred source based on proximity
+            function adjustLum(p) {
+              let l = (0.299 * p[i] + 0.587 * p[i + 1] + 0.114 * p[i + 2]) / 255;
+              l += ditherConfig.brightness;
+              l = ((l - 0.5) * ditherConfig.contrast) + 0.5;
+              if (l > 0) l = Math.pow(l, 1 / ditherConfig.gamma);
+              return l < 0 ? 0 : l > 1 ? 1 : l;
+            }
+            let lum = adjustLum(pixels);
+            if (blurredPixels && prox > 0) {
+              const blend = prox * ditherConfig.mouseBlurAmount;
+              lum = lum * (1 - blend) + adjustLum(blurredPixels) * blend;
+            }
+
+            let si;
+            if      (lum >= ditherConfig.t1) si = 0;
+            else if (lum >= ditherConfig.t2) si = 1;
+            else if (lum >= ditherConfig.t3) si = 2;
+            else {
+              // Off cell — draw bar in #ddd when mouse is nearby
+              if (ditherConfig.proximityEnabled && prox > 0.005) {
+                // Lerp #fff → #ddd based on proximity
+                const ch = Math.round(255 - prox * 34);
+                const offColor = `rgb(${ch},${ch},${ch})`;
+                if (offColor !== lastColor) { bgCtx.fillStyle = offColor; lastColor = offColor; }
+                bgCtx.setTransform(sf, 0, 0, sf, x * CELL, y * CELL);
+                bgCtx.fill(SHAPES[2]);
+              }
+              continue;
+            }
+
+            if ('#000000' !== lastColor) { bgCtx.fillStyle = '#000000'; lastColor = '#000000'; }
+
+            bgCtx.setTransform(sf, 0, 0, sf, x * CELL, y * CELL);
+            bgCtx.fill(SHAPES[si]);
+          }
+        }
+
+        bgCtx.setTransform(1, 0, 0, 1, 0, 0);
+        rafId = requestAnimationFrame(render);
+      }
+
+      let fadeOutTimer = null;
+
+      return {
+        start() {
+          if (fadeOutTimer) { clearTimeout(fadeOutTimer); fadeOutTimer = null; }
+          bgCanvas.style.transition = '';
+          bgCanvas.style.opacity = '1';
+          video.play().catch(() => {});
+          if (!rafId) render();
+        },
+        stop() {
+          if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+          video.pause();
+        },
+        fadeOut(duration) {
+          bgCanvas.style.transition = `opacity ${duration}ms ease-in-out`;
+          bgCanvas.style.opacity = '0';
+          fadeOutTimer = setTimeout(() => {
+            fadeOutTimer = null;
+            if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+            video.pause();
+          }, duration);
+        },
+      };
+    }
+
+    ditherBg = initDitherBg();
   </script>
 </body>
 </html>
