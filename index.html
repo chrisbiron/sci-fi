@@ -898,7 +898,14 @@
             press.classList.remove('animating', 'settled');
             if (press._settleTimer) { clearTimeout(press._settleTimer); press._settleTimer = null; }
           }
-          if (slideIdx === 0) detachSlide0ScrollTrigger();
+          if (slideIdx === 0) {
+            // Leaving slide 0 — make sure the eye fades out and the words collapse,
+            // even if the scroll trigger never fired (e.g., within its 600ms grace
+            // period or on a fast swipe that skipped past the 10% threshold).
+            detachSlide0ScrollTrigger();
+            collapseIntroWords();
+            ditherBg?.fadeOut(400);
+          }
         }
       });
     }, { root: slidesContainer, threshold: [0, 0.1, 0.6] });
@@ -949,6 +956,20 @@
       if (_squishTimerId) { clearTimeout(_squishTimerId); _squishTimerId = null; }
 
       window.removeEventListener('resize', onFiResize);
+
+      // Mobile (slide 0 entry): slide the small Sci/Fi off the sides so the eye
+      // is unobstructed. Words slide back in when leaving slide 0.
+      if (window.innerWidth <= 640) {
+        window.removeEventListener('resize', onFiResize);
+        const sciW = introWordSci.getBoundingClientRect().width;
+        introWordSci.style.transition = '';
+        introWordSci.style.left = -(sciW + 20) + 'px';
+        introWordFi.style.transition = '';
+        introWordFi.style.left  = (window.innerWidth + 20) + 'px';
+        wordsExpanded = true;
+        return;
+      }
+
       // Clear any inline animation/transition overrides from the intro so CSS defaults take over
       introWordSci.style.animationName     = 'none';
       introWordSci.style.animationDelay    = '0s';
@@ -977,6 +998,17 @@
       if (!introWordSci || !introWordFi || !wordsExpanded) return;
       wordsExpanded = false;
       _collapseFiredAt = performance.now();
+
+      // Mobile (slide 0 leave): slide the small Sci/Fi back in from the sides
+      // so they're visible while the user is on slide 1+.
+      if (window.innerWidth <= 640) {
+        introWordSci.style.transition = '';
+        introWordSci.style.left = ''; // CSS mobile `.p2 { left: 8px }` applies
+        introWordFi.style.transition = '';
+        introWordFi.style.left  = (window.innerWidth - 8 - introFiW) + 'px';
+        window.addEventListener('resize', onFiResize);
+        return;
+      }
 
       const squishEasing   = 'cubic-bezier(0.77, 0, 0.175, 1)';
       const squishDuration = 300;
@@ -1075,7 +1107,11 @@
         const fiW          = wordFi.getBoundingClientRect().width;
         const tightEdgePx  = Math.max(0,
           (window.innerWidth - sciW - fiW - tightGapPx) / 2);
-        const finalEdgePx  = expandedEdgePx();         // 24 mobile / 200 desktop
+        // Desktop: words settle near the edges (200px). Mobile: spread fully
+        // off-screen so the dither eye is unobstructed.
+        const isMobile     = window.innerWidth <= 640;
+        const finalLeftSci = isMobile ? -(sciW + 20) : expandedEdgePx();
+        const finalRightFi = isMobile ? -(fiW + 20)  : expandedEdgePx();
         const settleDelay  = wordsAppearDelay + animDuration + wordStagger + 350;
         const closerDur    = 300;                      // ms — come together slightly
         const closerOffset = 15;                       // px each side (30px total inward)
@@ -1116,8 +1152,8 @@
               `left ${spreadDur}ms ${spreadEasing}`, 'important');
             wordFi.style.setProperty('transition',
               `right ${spreadDur}ms ${spreadEasing}`, 'important');
-            wordSci.style.left  = finalEdgePx + 'px';
-            wordFi.style.right  = finalEdgePx + 'px';
+            wordSci.style.left  = finalLeftSci + 'px';
+            wordFi.style.right  = finalRightFi + 'px';
           }, closerDur);
         }, settleDelay);
       }
@@ -1150,9 +1186,40 @@
             function doCollapse(e) {
               document.removeEventListener('click',      doCollapse);
               document.removeEventListener('wheel',      doCollapse);
-              document.removeEventListener('touchstart', doCollapse);
+              document.removeEventListener('touchend',   doCollapse);
 
               ditherBg?.fadeOut(500);
+
+              // Mobile: words spread fully off-screen during settle. Skip the squish
+              // entirely — snap .p2 (small Sci/Fi state) and slide them in from the
+              // edges to their final 8px-from-edge resting position.
+              if (window.innerWidth <= 640) {
+                // Switch Fi to left-anchored at its current visual position so left
+                // transitions naturally to the on-screen target.
+                const fiRect = wordFi.getBoundingClientRect();
+                wordFi.style.transition = 'none';
+                wordFi.style.right = 'auto';
+                wordFi.style.left  = fiRect.left + 'px';
+                wordFi.offsetWidth; // reflow
+                wordFi.style.transition = '';
+
+                wordSci.classList.add('p2');
+                wordFi.classList.add('p2');
+                wordSci.style.color = '';
+                wordSci.style.left  = ''; // CSS `.p2 { left: 8px }` (mobile) takes over
+                wordFi.style.color  = '';
+                wordFi.style.left   = (window.innerWidth - 8 - introFiW) + 'px';
+                window.addEventListener('resize', onFiResize);
+
+                setTimeout(() => {
+                  document.body.classList.remove('intro-active');
+                  introRunning = false;
+                  startObserving();
+                  slides[1].scrollIntoView({ behavior: 'instant' });
+                }, 150);
+                setTimeout(() => intro.remove(), 800);
+                return;
+              }
 
               const squishEasing   = 'cubic-bezier(0.77, 0, 0.175, 1)';
               const squishDuration = 500;
@@ -1207,7 +1274,7 @@
 
             document.addEventListener('click',      doCollapse);
             document.addEventListener('wheel',      doCollapse);
-            document.addEventListener('touchstart', doCollapse);
+            document.addEventListener('touchend',   doCollapse);
           }, lockinDelay);
       }
 
@@ -1330,7 +1397,7 @@
         offscreen.height = rows;
         const vW = video.videoWidth, vH = video.videoHeight;
         // Mobile: matches desktop default at 0.7× (eye sits inset from viewport).
-        const zoom = (window.innerWidth <= 640 ? 0.3 : (ditherConfig.zoom || 1));
+        const zoom = (window.innerWidth <= 640 ? 0.9 : (ditherConfig.zoom || 1));
         const scale = Math.max(cols / vW, rows / vH) * zoom;
         const dw = vW * scale, dh = vH * scale;
         const dxOff = (cols - dw) / 2;
@@ -1547,6 +1614,8 @@
           // Apply hue-rotate filter at the start angle; we'll transition to 0 alongside
           // the pink→black tween (same speed/easing as Hue Warp 2 text effect).
           bgCanvas.style.filter     = `hue-rotate(${HUE_ROTATE_FROM}deg)`;
+          // Restart the video from the beginning each time the eye re-animates in.
+          try { video.currentTime = 0; } catch (e) {}
           video.play().catch(() => {});
           if (!rafId) render();
 
