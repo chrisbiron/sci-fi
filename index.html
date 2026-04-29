@@ -269,6 +269,82 @@
       animation-duration: var(--duration, 600ms);
     }
 
+    /* ── Backers ticker (slide 3) ── */
+    .backers {
+      position: absolute;
+      bottom: 24px;
+      left: 0;
+      right: 0;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    .backers-label {
+      font-size: 12px;
+      letter-spacing: -0.01em;
+      font-weight: 500;
+      color: var(--color-text);
+      opacity: 0;
+      transform-origin: center top;
+    }
+    .backers-label.animating {
+      animation-name: btn-hue-stretch-y;
+      animation-fill-mode: both;
+      animation-timing-function: var(--easing, cubic-bezier(0.87, 0, 0.13, 1));
+      animation-duration: var(--duration, 360ms);
+    }
+    html.dark .backers-label.animating {
+      animation-name: btn-hue-stretch-y-dark;
+      animation-fill-mode: both;
+      animation-timing-function: var(--easing, cubic-bezier(0.87, 0, 0.13, 1));
+      animation-duration: var(--duration, 360ms);
+    }
+    /* Pill matches .slide-btn (background, color, border-radius, animation). */
+    .backers-pill {
+      width: 360px;
+      height: 38px;
+      border-radius: 100px;
+      background: rgba(0, 0, 0, 0.06);
+      color: var(--color-text);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      opacity: 0;
+      transform-origin: center top;
+    }
+    html.dark .backers-pill { background: rgba(255, 255, 255, 0.1); }
+    .backers-pill.animating {
+      animation-name: btn-hue-stretch-y;
+      animation-fill-mode: both;
+      animation-timing-function: var(--easing, cubic-bezier(0.87, 0, 0.13, 1));
+      animation-duration: var(--duration, 360ms);
+    }
+    html.dark .backers-pill.animating {
+      animation-name: btn-hue-stretch-y-dark;
+      animation-fill-mode: both;
+      animation-timing-function: var(--easing, cubic-bezier(0.87, 0, 0.13, 1));
+      animation-duration: var(--duration, 360ms);
+    }
+    .backers-track {
+      display: flex;
+      width: max-content;
+      gap: 24px;
+      padding-left: 24px; /* matches gap so the duplicate seam is invisible */
+      animation: backers-scroll 28s linear infinite;
+    }
+    .backer {
+      font-size: 14px;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      color: var(--color-text);
+    }
+    @keyframes backers-scroll {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+
     /* ── Press list (slide 3) ── */
     .press-list {
       display: flex;
@@ -475,6 +551,11 @@
     #intro-logo-large.exit {
       transform: translate(-50%, calc(-50% - 50vh + 29px)) scale(0.23);
     }
+    @media (max-width: 640px) {
+      #intro-logo-large.exit {
+        transform: translate(-50%, calc(-50% - 50vh + 37px)) scale(0.23);
+      }
+    }
 
     #intro-canvas {
       display: block;
@@ -502,6 +583,7 @@
       .press-list { gap: 22px; }
       .press-headline { font-size: 18px; }
       .press-outlet { font-size: 12px; }
+      .backers-pill { width: 240px; }
     }
 
     /* ── Dither background ── */
@@ -572,6 +654,24 @@
           <div class="press-outlet">Sifted</div>
           <div class="press-headline">&ldquo;Ex-Pinterest and Snap execs back alternative social app&rdquo;</div>
         </a>
+      </div>
+      <div class="backers">
+        <div class="backers-label">Backed by</div>
+        <div class="backers-pill">
+          <div class="backers-track">
+            <span class="backer">Greylock Ventures</span>
+            <span class="backer">Google Ventures</span>
+            <span class="backer">DST</span>
+            <span class="backer">SpeedInvest</span>
+            <span class="backer">Octopus Ventures</span>
+            <!-- Duplicated for seamless infinite loop -->
+            <span class="backer" aria-hidden="true">Greylock Ventures</span>
+            <span class="backer" aria-hidden="true">Google Ventures</span>
+            <span class="backer" aria-hidden="true">DST</span>
+            <span class="backer" aria-hidden="true">SpeedInvest</span>
+            <span class="backer" aria-hidden="true">Octopus Ventures</span>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -778,6 +878,49 @@
         list.classList.add('settled');
         list._settleTimer = null;
       }, totalMs);
+
+      // Animate the "Backed by" label and the backers pill in (same keyframe as
+      // the slide button), staggered after the last press item.
+      const slide = list.closest('.slide');
+      const baseDelay = items.length * stagger;
+      const label = slide && slide.querySelector('.backers-label');
+      if (label) animateBackersElement(label, baseDelay);
+      const pill = slide && slide.querySelector('.backers-pill');
+      if (pill) animateBackersElement(pill, baseDelay + 80); // small stagger after label
+    }
+
+    function animateBackersElement(el, delay) {
+      el.classList.remove('animating');
+      el.style.animationName = '';
+      el.style.filter = '';
+      el.style.transform = '';
+      el.style.opacity = '';
+      void el.offsetWidth;
+
+      // Match the in-keyframe defaults (light pink for light mode, dark purple for
+      // dark) so the start-state flash matches the surrounding theme.
+      const isDark = document.documentElement.classList.contains('dark');
+      el.style.setProperty('--hue-color', isDark
+        ? '#331033'
+        : (CSS.supports('color', 'color(display-p3 0 0 0)') ? 'color(display-p3 1 0.87 1)' : '#FFDCFF'));
+      el.style.setProperty('--hue-angle', config.hueAngle * -1 + 'deg');
+      el.style.setProperty('--stretch-amount', config.stretchAmount);
+      el.style.setProperty('--stretch-blur', config.stretchBlur + 'px');
+      el.style.setProperty('--duration', config.duration + 'ms');
+      el.style.setProperty('--easing', config.easing);
+      el.style.animationDelay = delay + 'ms';
+
+      requestAnimationFrame(() => el.classList.add('animating'));
+
+      // Same Safari-blur fix as animateBtn — kill animation-name and clear
+      // filter/transform once the keyframe ends so the layer is destroyed.
+      el.addEventListener('animationend', function onEnd() {
+        el.removeEventListener('animationend', onEnd);
+        el.style.animationName = 'none';
+        el.style.filter = 'none';
+        el.style.transform = 'none';
+        el.style.opacity = '1';
+      });
     }
 
     function animateBtn(btn, textEl) {
@@ -898,6 +1041,14 @@
             press.classList.remove('animating', 'settled');
             if (press._settleTimer) { clearTimeout(press._settleTimer); press._settleTimer = null; }
           }
+          slide.querySelectorAll('.backers-label, .backers-pill').forEach(el => {
+            el.classList.remove('animating');
+            el.style.animationDelay = '';
+            el.style.animationName  = '';
+            el.style.filter         = '';
+            el.style.transform      = '';
+            el.style.opacity        = '';
+          });
           if (slideIdx === 0) {
             // Leaving slide 0 — make sure the eye fades out and the words collapse,
             // even if the scroll trigger never fired (e.g., within its 600ms grace
