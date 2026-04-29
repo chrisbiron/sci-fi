@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Science Fiction</title>
   <meta name="description" content="Science Fiction is a software company turning frontier technology into iconic products.">
-  <meta name="theme-color" content="#000000">
   <link rel="canonical" href="https://chrisbiron.github.io/sci-fi/">
   <link rel="icon" href="./favicon.svg" type="image/svg+xml">
 
@@ -124,7 +123,7 @@
 
     .slide {
       position: relative;
-      height: 100vh;
+      height: 100dvh;
       scroll-snap-align: start;
       display: flex;
       align-items: center;
@@ -1307,6 +1306,10 @@
           w.style.opacity = '1';
           w.style.color = fromColor;
           w.style.animationName = 'none';
+          // Drop the GPU compositor layer Safari held onto for `filter`/`transform`
+          // — otherwise text rasterizes through a sub-pixel filter buffer (blurry).
+          w.style.filter = 'none';
+          w.style.transform = 'none';
 
           // Double-rAF: let the browser register the killed-animation state,
           // then start the transition to the inherited text color.
@@ -1360,6 +1363,8 @@
         w.style.animationName = '';
         w.style.transition = '';
         w.style.transformOrigin = '';
+        w.style.filter = '';
+        w.style.transform = '';
       });
 
       const isStretch = config.effect === 'hue-stretch-y' || config.effect === 'hue-stretch-y-2' || config.effect === 'stretch-y';
@@ -1382,6 +1387,22 @@
           );
         } else if (config.effect === 'hue-stretch-y') { // Hue Warp 1 only — Hue Warp 2 transitions in CSS
           stretchColorController = animateStretchColors(Array.from(el.querySelectorAll('.word')), config.hueColor);
+        }
+
+        // Safari renders text blurry when it sits on a GPU compositor layer left
+        // behind by `filter: blur(0)` / `transform: scaleY(1)` final keyframe state.
+        // Killing `animation-name` drops the keyframe-fill cascade so inline
+        // `filter: none` / `transform: none` win and the GPU layer is destroyed.
+        // blob/hue-stretch-y manage filter via JS controllers and clean up themselves.
+        if (config.effect !== 'blob' && config.effect !== 'hue-stretch-y') {
+          el.querySelectorAll('.word').forEach(w => {
+            w.addEventListener('animationend', function onEnd() {
+              w.removeEventListener('animationend', onEnd);
+              w.style.animationName = 'none';
+              w.style.filter = 'none';
+              w.style.transform = 'none';
+            });
+          });
         }
       });
     }
@@ -1468,6 +1489,18 @@
       btn.style.animationDelay = (maxDelay + config.stagger) + 'ms';
 
       requestAnimationFrame(() => btn.classList.add('animating'));
+
+      // Drop the GPU compositor layer Safari held onto for `filter`/`transform`
+      // once the keyframe ends. Need to kill `animation-name` first because
+      // `animation-fill-mode: both` keeps the end-frame `filter: blur(0)` winning
+      // over inline styles in the cascade.
+      btn.addEventListener('animationend', function onEnd() {
+        btn.removeEventListener('animationend', onEnd);
+        btn.style.animationName = 'none';
+        btn.style.filter = 'none';
+        btn.style.transform = 'none';
+        btn.style.opacity = '1';
+      });
     }
 
     // ── IntersectionObserver — animate in on enter, reset on exit ──
@@ -1511,7 +1544,7 @@
         } else if (entry.intersectionRatio < 0.1) {
           if (textEl) textEl.classList.remove('animating');
           const btn = slide.querySelector('.slide-btn');
-          if (btn) { btn.classList.remove('animating'); btn.style.animationDelay = ''; }
+          if (btn) { btn.classList.remove('animating'); btn.style.animationDelay = ''; btn.style.animationName = ''; btn.style.filter = ''; btn.style.transform = ''; btn.style.opacity = ''; }
           const press = slide.querySelector('.press-list');
           if (press) {
             press.classList.remove('animating', 'settled');
@@ -1887,8 +1920,6 @@
           document.getElementById('intro-logo-large').classList.add('exit');
           intro.classList.add('p2');
           ditherBg?.start();
-          const themeMeta = document.querySelector('meta[name="theme-color"]');
-          if (themeMeta) themeMeta.setAttribute('content', '#ffffff');
         });
 
         // After animation ends: lock in visible state, then wait for user input to collapse.

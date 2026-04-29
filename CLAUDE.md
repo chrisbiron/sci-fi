@@ -70,7 +70,7 @@ Three permanent fixed elements (z-index 201, above the black overlay at z-index 
    - `#intro.p2` → black overlay fades out (1s ease)
    - `ditherBg.start()` triggers (eye reveal with `START_DELAY_FIRST = 800ms` then brightness ramp + pink→black sweep)
    - Real `.logo` fades in
-   - `theme-color` meta tag is swapped from `#000000` → `#ffffff` so iOS Safari toolbars match the page background after the intro fade
+   - No `theme-color` meta is set — iOS Safari's native translucent toolbar samples the page edge color so it tints dark during the intro and light after, automatically (same approach as born.com / Framer sites)
 5. After lockin (`lockinDelay = wordsAppearDelay + animDuration + wordStagger - wordsLeadMs`): `intro-active` removed, `startObserving()` fires, main text animation begins
 
 **Key details:**
@@ -90,7 +90,7 @@ Three permanent fixed elements (z-index 201, above the black overlay at z-index 
 - `®` is wrapped in `<sup>` by `buildWords()`; font preload `<link>` is required because opacity:0 words suppress browser font loading
 
 ## SEO / Social
-- `<meta name="description">`, `theme-color`, `<link rel="canonical">`, full Open Graph tags, and Twitter `summary_large_image` are in `<head>`. They reference `https://chrisbiron.github.io/sci-fi/` and `og.png` (1200×630).
+- `<meta name="description">`, `<link rel="canonical">`, full Open Graph tags, and Twitter `summary_large_image` are in `<head>` (no `theme-color` — see Intro Animation section). They reference `https://chrisbiron.github.io/sci-fi/` and `og.png` (1200×630).
 - `<link rel="preload" as="image">` for `intro.webp` and `<link rel="preload" as="font">` for the woff2s.
 
 ## Intro Word Animation Perf
