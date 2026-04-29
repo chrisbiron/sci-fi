@@ -227,69 +227,20 @@
       line-height: 0;
     }
 
-    /* Effect: blur */
-    @keyframes word-blur {
-      from { opacity: 0; filter: blur(var(--blur-amount, 8px)); }
-      to   { opacity: 1; filter: blur(0); }
-    }
-
-    /* Effect: blur-up */
-    @keyframes word-blur-up {
-      from { opacity: 0; filter: blur(var(--blur-amount, 8px)); transform: translateY(var(--translate-amount, 16px)); }
-      to   { opacity: 1; filter: blur(0); transform: translateY(0); }
+    /* Word effect: Hue Warp 2 — scaleY + blur + hue-rotate in, hue-color → text color */
+    @keyframes word-hue-stretch-y-2 {
+      0%   { opacity: 0; transform: scaleY(var(--stretch-amount, 3)); filter: blur(var(--stretch-blur, 8px)) hue-rotate(var(--hue-angle, 180deg)); color: var(--hue-color, #f113f4); color: var(--hue-color, color(display-p3 0.945 0.071 0.957)); }
+      50%  { color: var(--hue-color, #f113f4); color: var(--hue-color, color(display-p3 0.945 0.071 0.957)); }
+      100% { opacity: 1; transform: scaleY(1); filter: blur(0) hue-rotate(0deg); color: var(--color-text); }
     }
 
     .slide-text.animating .word {
       opacity: 1;
+      transform-origin: center top;
+      animation-name: word-hue-stretch-y-2;
       animation-fill-mode: both;
       animation-timing-function: var(--easing, cubic-bezier(0.16, 1, 0.3, 1));
       animation-duration: var(--duration, 600ms);
-    }
-
-    .slide-text[data-effect="blur"].animating    .word { animation-name: word-blur; }
-    .slide-text[data-effect="blur-up"].animating .word { animation-name: word-blur-up; }
-    .slide-text[data-effect="blob"].animating    .word { animation-name: word-blob; }
-
-    /* Effect: blob — phase 1: opacity 0→1 via CSS; phase 2: stroke+blur resolved by JS after animationend */
-    @keyframes word-blob {
-      from { opacity: 0; }
-      to   { opacity: 1; }
-    }
-
-    /* Effect: stretch-y — scaleY + blur in, C1→C2→text color entirely in CSS */
-    @keyframes word-stretch-y {
-      0%   { opacity: 0; transform: scaleY(var(--stretch-amount, 3)); filter: blur(var(--stretch-blur, 8px)); color: var(--stretch-color1, #00ccff); color: var(--stretch-color1, color(display-p3 0 0.84 1)); }
-      5%  { opacity: 1; color: var(--stretch-color1, #00ccff); color: var(--stretch-color1, color(display-p3 0 0.84 1)); }
-      50%  { color: var(--stretch-color2, #ff75e1); color: var(--stretch-color2, color(display-p3 1 0.46 0.89)); }
-      100% { opacity: 1; transform: scaleY(1); filter: blur(0); color: var(--color-text); }
-    }
-
-    .slide-text[data-effect="stretch-y"].animating .word {
-      transform-origin: center top;
-      animation-name: word-stretch-y;
-    }
-
-    /* Effect: hue-stretch-y (Hue Warp 1) — color holds at hue-color; JS fades to text after */
-    @keyframes word-hue-stretch-y {
-      0%   { opacity: 0; transform: scaleY(var(--stretch-amount, 3)); filter: blur(var(--stretch-blur, 8px)) hue-rotate(var(--hue-angle, 180deg)); color: var(--hue-color, #f113f4); color: var(--hue-color, color(display-p3 0.945 0.071 0.957)); }
-      100% { opacity: 1; transform: scaleY(1); filter: blur(0) hue-rotate(0deg); color: var(--hue-color, #f113f4); color: var(--hue-color, color(display-p3 0.945 0.071 0.957)); }
-    }
-
-    .slide-text[data-effect="hue-stretch-y"].animating .word {
-      transform-origin: center top;
-      animation-name: word-hue-stretch-y;
-    }
-
-    /* Effect: hue-stretch-y-2 (Hue Warp 2) — same stretch, hue-color → text color entirely in CSS */
-    @keyframes word-hue-stretch-y-2 {
-      0%   { opacity: 0; transform: scaleY(var(--stretch-amount, 3)); filter: blur(var(--stretch-blur, 8px)) hue-rotate(var(--hue-angle, 180deg)); color: var(--hue-color, #f113f4); color: var(--hue-color, color(display-p3 0.945 0.071 0.957)); }
-      50%   { color: var(--hue-color, #f113f4); color: var(--hue-color, color(display-p3 0.945 0.071 0.957)); }
-      100% { opacity: 1; transform: scaleY(1); filter: blur(0) hue-rotate(0deg); color: var(--color-text); }
-    }
-
-    .slide-text[data-effect="hue-stretch-y-2"].animating .word {
-      transform-origin: center top;
-      animation-name: word-hue-stretch-y-2;
     }
 
     /* ── Press list (slide 3) ── */
@@ -360,163 +311,6 @@
       color: inherit;
     }
 
-
-    /* ── Dev Sidebar ── */
-    #dev-sidebar, #dither-panel { display: none !important; }
-    #dev-sidebar {
-      position: fixed;
-      right: 16px;
-      top: 16px;
-      z-index: 100;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      font-size: 11px;
-    }
-
-    #sidebar-toggle {
-      display: block;
-      margin-left: auto;
-      background: var(--color-panel-bg);
-      border: 1px solid var(--color-panel-border);
-      border-radius: 6px;
-      width: 28px;
-      height: 28px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      font-size: 14px;
-      color: #999;
-      color: color(display-p3 0.6 0.6 0.6);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      box-shadow: 0 2px 8px color(display-p3 0 0 0 / 0.08);
-      padding: 0;
-      line-height: 1;
-      transition: color 0.15s;
-    }
-    #sidebar-toggle:hover { color: #444; color: color(display-p3 0.267 0.267 0.267); }
-
-    #sidebar-inner {
-      background: var(--color-panel-bg);
-      border: 1px solid var(--color-panel-border);
-      border-radius: 12px;
-      padding: 16px;
-      width: 210px;
-      max-height: calc(100vh - 60px);
-      overflow-y: auto;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.1);
-      box-shadow: 0 4px 24px color(display-p3 0 0 0 / 0.1);
-      scrollbar-width: none;
-      margin-top: 6px;
-    }
-    #sidebar-inner::-webkit-scrollbar { display: none; }
-
-    #dev-sidebar.closed #sidebar-inner { display: none; }
-
-    /* Sidebar rows & controls */
-    .sb-section {
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: #aaa;
-      color: color(display-p3 0.667 0.667 0.667);
-      font-weight: 600;
-      margin-bottom: 12px;
-    }
-
-    .sb-ctrl { margin-bottom: 10px; }
-
-    .sb-ctrl-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 3px;
-    }
-
-    .sb-label {
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: #888;
-      color: color(display-p3 0.533 0.533 0.533);
-    }
-
-    .sb-val {
-      font-size: 11px;
-      color: #333;
-      color: color(display-p3 0.2 0.2 0.2);
-      font-variant-numeric: tabular-nums;
-    }
-
-    .sb-div {
-      border: none;
-      border-top: 1px solid var(--color-panel-border);
-      margin: 10px 0;
-    }
-
-    .sb-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 8px;
-    }
-
-    #sidebar-inner input[type="range"] {
-      width: 100%;
-      display: block;
-      cursor: pointer;
-      accent-color: #0a0a0a;
-      accent-color: color(display-p3 0.039 0.039 0.039);
-      margin: 0;
-    }
-
-    #sidebar-inner select,
-    #sidebar-inner input[type="text"] {
-      width: 100%;
-      border: 1px solid #ddd;
-      border-color: color(display-p3 0.867 0.867 0.867);
-      border-radius: 5px;
-      padding: 4px 7px;
-      font-size: 11px;
-      font-family: inherit;
-      color: #222;
-      color: color(display-p3 0.133 0.133 0.133);
-      background: #fff;
-      background: color(display-p3 1 1 1);
-      cursor: pointer;
-      box-sizing: border-box;
-    }
-
-    #sidebar-inner input[type="color"] {
-      width: 30px;
-      height: 22px;
-      padding: 1px 2px;
-      border: 1px solid #ddd;
-      border-color: color(display-p3 0.867 0.867 0.867);
-      border-radius: 4px;
-      cursor: pointer;
-      background: white;
-      background: color(display-p3 1 1 1);
-    }
-
-    /* ctrl-group divs hidden by default; shown by updatePanelForEffect */
-    .ctrl-group { display: none; }
-
-    /* ── Sidebar action buttons (Pause / Replay) ── */
-    .sb-action-btn {
-      flex: 1;
-      background: #0a0a0a;
-      background: color(display-p3 0.039 0.039 0.039);
-      color: #fff;
-      color: color(display-p3 1 1 1);
-      border: none;
-      border-radius: 6px;
-      padding: 5px 8px;
-      font-size: 11px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      cursor: pointer;
-      letter-spacing: 0.03em;
-    }
-    .sb-action-btn:hover { background: #333; background: color(display-p3 0.2 0.2 0.2); }
 
     /* ── Intro sequence ── */
 
@@ -604,7 +398,7 @@
       #intro-word-fi  { right: 24px; }
     }
 
-    /* Expanded intro words on butterfly slide — overrides p2 to show full Science / Fiction */
+    /* Expanded intro words on slide 0 — overrides p2 to show full Science / Fiction */
     #intro-word-sci.expanded {
       left: 200px;
       font-size: clamp(40px, 5.5vw, 120px);
@@ -661,95 +455,6 @@
       .slide-text { font-size: 28px; }
       .press-list { gap: 22px; }
       .press-headline { font-size: 22px; }
-      #dev-sidebar { display: none; }
-    }
-
-    /* ── Dither control panel ── */
-    #dither-panel {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      z-index: 202;
-      width: 220px;
-      background: rgba(255, 255, 255, 0.92);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(0, 0, 0, 0.1);
-      border-radius: 14px;
-      padding: 16px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      font-size: 11px;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.12);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s ease;
-    }
-    #dither-panel.visible {
-      opacity: 1;
-      pointer-events: all;
-    }
-    #dither-panel .dp-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      cursor: pointer;
-      user-select: none;
-    }
-    #dither-panel .dp-title {
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      font-weight: 600;
-      color: #aaa;
-    }
-    #dither-panel .dp-toggle {
-      background: none;
-      border: none;
-      padding: 0;
-      cursor: pointer;
-      font-size: 11px;
-      color: #aaa;
-      line-height: 1;
-      transition: transform 0.2s ease;
-    }
-    #dither-panel.closed .dp-toggle {
-      transform: rotate(-90deg);
-    }
-    #dither-panel .dp-body {
-      margin-top: 12px;
-    }
-    #dither-panel.closed .dp-body {
-      display: none;
-    }
-    #dither-panel .dp-ctrl {
-      margin-bottom: 10px;
-    }
-    #dither-panel .dp-ctrl:last-child {
-      margin-bottom: 0;
-    }
-    #dither-panel .dp-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 3px;
-    }
-    #dither-panel .dp-label {
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: #888;
-    }
-    #dither-panel .dp-val {
-      font-size: 11px;
-      color: #333;
-      font-variant-numeric: tabular-nums;
-    }
-    #dither-panel input[type="range"] {
-      width: 100%;
-      display: block;
-      cursor: pointer;
-      accent-color: #0a0a0a;
-      margin: 0;
     }
 
     /* ── Dither background ── */
@@ -784,17 +489,17 @@
 
   <div class="slides" id="slides">
 
-    <!-- Slide 0: butterfly -->
+    <!-- Slide 0: dither bg + expanded "Science Fiction" intro words -->
     <section class="slide" data-index="0"></section>
 
     <section class="slide" data-index="1">
-      <p class="slide-text" data-effect="hue-stretch-y">
+      <p class="slide-text">
         Science Fiction® is a software company turning frontier technology into iconic products.
       </p>
     </section>
 
     <section class="slide" data-index="2">
-      <p class="slide-text" data-effect="hue-stretch-y">
+      <p class="slide-text">
         A small team of designers &amp; technologists who combine art, science, and internet culture to make the impossible inevitable.
       </p>
       <div class="slide-btn-wrap">
@@ -828,182 +533,6 @@
 
   </div>
 
-  <!-- Floating sidebar (desktop only) -->
-  <div id="dev-sidebar" class="closed">
-    <button id="sidebar-toggle" aria-label="Toggle controls">⚙</button>
-    <div id="sidebar-inner">
-      <div class="sb-section">Anim</div>
-
-      <div class="sb-ctrl">
-        <div class="sb-ctrl-header"><span class="sb-label">Effect</span></div>
-        <select id="ctrl-effect">
-          <option value="blur-up">Blur + Slide Up</option>
-          <option value="blur">Blur</option>
-          <option value="blob">Blob Text</option>
-          <option value="stretch-y">Stretch In</option>
-          <option value="hue-stretch-y">Hue Warp 1</option>
-          <option value="hue-stretch-y-2" selected>Hue Warp 2</option>
-        </select>
-      </div>
-
-      <hr class="sb-div">
-
-      <div class="sb-ctrl">
-        <div class="sb-ctrl-header">
-          <span class="sb-label">Duration</span>
-          <span class="sb-val" id="val-duration">360ms</span>
-        </div>
-        <input type="range" id="ctrl-duration" min="80" max="1200" value="360" step="10">
-      </div>
-
-      <div class="sb-ctrl">
-        <div class="sb-ctrl-header">
-          <span class="sb-label">Stagger</span>
-          <span class="sb-val" id="val-stagger">85ms</span>
-        </div>
-        <input type="range" id="ctrl-stagger" min="0" max="200" value="85" step="5">
-      </div>
-
-      <div class="sb-ctrl">
-        <div class="sb-ctrl-header">
-          <span class="sb-label">, Pause</span>
-          <span class="sb-val" id="val-comma-pause">320ms</span>
-        </div>
-        <input type="range" id="ctrl-comma-pause" min="0" max="600" value="320" step="10">
-      </div>
-
-      <hr class="sb-div">
-
-      <div class="sb-ctrl">
-        <div class="sb-ctrl-header"><span class="sb-label">Easing</span></div>
-        <select id="ctrl-easing">
-          <option value="cubic-bezier(0.16, 1, 0.3, 1)">Expo Out</option>
-          <option value="cubic-bezier(0.34, 1.56, 0.64, 1)">Spring</option>
-          <option value="cubic-bezier(0.25, 0.1, 0.25, 1)">Ease</option>
-          <option value="cubic-bezier(0, 0, 0.2, 1)">Ease Out</option>
-          <option value="cubic-bezier(0.4, 0, 1, 1)">Ease In</option>
-          <option value="linear">Linear</option>
-          <option value="custom" selected>Custom…</option>
-        </select>
-        <input type="text" id="ctrl-custom-easing" placeholder="cubic-bezier(…)" value="cubic-bezier(0.87, 0, 0.13, 1)" style="margin-top:6px;">
-      </div>
-
-      <!-- Blur (blur / blur-up / blob) -->
-      <div class="ctrl-group" data-for="blur blur-up blob">
-        <hr class="sb-div">
-        <div class="sb-ctrl">
-          <div class="sb-ctrl-header">
-            <span class="sb-label">Blur</span>
-            <span class="sb-val" id="val-blur">12px</span>
-          </div>
-          <input type="range" id="ctrl-blur" min="0" max="32" value="12" step="1">
-        </div>
-      </div>
-
-      <!-- Translate Y -->
-      <div class="ctrl-group" data-for="blur-up">
-        <hr class="sb-div">
-        <div class="sb-ctrl">
-          <div class="sb-ctrl-header">
-            <span class="sb-label">Translate Y</span>
-            <span class="sb-val" id="val-translate">12px</span>
-          </div>
-          <input type="range" id="ctrl-translate" min="0" max="80" value="12" step="2">
-        </div>
-      </div>
-
-      <!-- Blob stroke -->
-      <div class="ctrl-group" data-for="blob">
-        <hr class="sb-div">
-        <div class="sb-ctrl">
-          <div class="sb-ctrl-header">
-            <span class="sb-label">Stroke</span>
-            <span class="sb-val" id="val-stroke">10px</span>
-          </div>
-          <input type="range" id="ctrl-stroke" min="0" max="20" value="10" step="1">
-        </div>
-      </div>
-
-      <!-- Stretch + Blur (shared) -->
-      <div class="ctrl-group" data-for="stretch-y hue-stretch-y hue-stretch-y-2">
-        <hr class="sb-div">
-        <div class="sb-ctrl">
-          <div class="sb-ctrl-header">
-            <span class="sb-label">Stretch</span>
-            <span class="sb-val" id="val-stretch-amount">2×</span>
-          </div>
-          <input type="range" id="ctrl-stretch-amount" min="1" max="8" value="2" step="0.1">
-        </div>
-        <div class="sb-ctrl">
-          <div class="sb-ctrl-header">
-            <span class="sb-label">Blur</span>
-            <span class="sb-val" id="val-stretch-blur">5px</span>
-          </div>
-          <input type="range" id="ctrl-stretch-blur" min="0" max="24" value="5" step="1">
-        </div>
-      </div>
-
-      <!-- C1 / C2 (Stretch In only) -->
-      <div class="ctrl-group" data-for="stretch-y">
-        <div class="sb-row">
-          <span class="sb-label">C1</span>
-          <input type="color" id="ctrl-stretch-color1" value="#00ccff">
-          <span class="sb-label">C2</span>
-          <input type="color" id="ctrl-stretch-color2" value="#ff75e1">
-        </div>
-      </div>
-
-      <!-- Color + Hue angle (Hue Warp 1 + 2) -->
-      <div class="ctrl-group" data-for="hue-stretch-y hue-stretch-y-2">
-        <div class="sb-row">
-          <span class="sb-label">Color</span>
-          <input type="color" id="ctrl-hue-color" value="#fd43ff">
-        </div>
-        <div class="sb-ctrl">
-          <div class="sb-ctrl-header">
-            <span class="sb-label">Hue °</span>
-            <span class="sb-val" id="val-hue-angle">180°</span>
-          </div>
-          <input type="range" id="ctrl-hue-angle" min="0" max="720" value="180" step="5">
-        </div>
-      </div>
-
-      <!-- Fade Out (Hue Stretch only) -->
-      <div class="ctrl-group" data-for="hue-stretch-y">
-        <div class="sb-ctrl">
-          <div class="sb-ctrl-header">
-            <span class="sb-label">Fade Out</span>
-            <span class="sb-val" id="val-stretch-fade">1600ms</span>
-          </div>
-          <input type="range" id="ctrl-stretch-fade" min="100" max="2000" value="1600" step="50">
-        </div>
-      </div>
-
-
-      <hr class="sb-div">
-
-      <div class="sb-row" style="margin-bottom:0;">
-        <span class="sb-label" style="flex:1;">Per Letter</span>
-        <input type="checkbox" id="ctrl-per-letter">
-      </div>
-
-      <hr class="sb-div">
-
-      <div class="sb-row" style="margin-bottom:0; gap:6px;">
-        <button id="pause-btn" class="sb-action-btn">⏸ Pause</button>
-        <button id="replay-btn" class="sb-action-btn">↺ Replay</button>
-      </div>
-
-      <hr class="sb-div">
-
-      <div class="sb-row" style="margin-bottom:0;">
-        <span class="sb-label" style="flex:1;">Dark Mode</span>
-        <input type="checkbox" id="ctrl-dark-mode">
-      </div>
-
-    </div>
-  </div>
-
   <!-- Permanent word elements — live above the overlay, persist after intro -->
   <div id="intro-word-sci">Sci<span class="intro-drop">ence</span></div>
   <div id="intro-word-fi">Fi<span class="intro-drop">ction</span></div>
@@ -1016,72 +545,10 @@
   <!-- Video sources for dither background. Note: NOT display:none — iOS Safari refuses
        to play hidden videos. Off-screen + 1×1 + opacity 0 keeps them paintable to the
        canvas while invisible to the user. -->
-  <video id="dither-video-eye"       src="./eye.mp4"       muted loop playsinline webkit-playsinline preload="auto" class="dither-source-video"></video>
-  <video id="dither-video-butterfly" src="./butterfly.mp4" muted loop playsinline webkit-playsinline preload="auto" class="dither-source-video"></video>
+  <video id="dither-video-eye" src="./eye.mp4" muted loop playsinline webkit-playsinline preload="auto" class="dither-source-video"></video>
 
   <!-- Dither background — fixed behind intro overlay, fades out on collapse -->
   <canvas id="dither-bg" aria-hidden="true"></canvas>
-
-  <!-- Dither control panel — shown during butterfly intro step -->
-  <div id="dither-panel" class="closed">
-    <div class="dp-header" id="dither-panel-toggle">
-      <span class="dp-title">Dither</span>
-      <button class="dp-toggle">▾</button>
-    </div>
-    <div class="dp-body">
-    <div class="dp-ctrl">
-      <div class="dp-row"><span class="dp-label">Source</span></div>
-      <select id="ctrl-dither-source">
-        <option value="eye" selected>Eye</option>
-        <option value="butterfly">Butterfly</option>
-      </select>
-    </div>
-    <div class="dp-ctrl">
-      <div class="dp-row"><span class="dp-label">Zoom</span><span class="dp-val" id="val-dither-zoom">0.70</span></div>
-      <input type="range" id="ctrl-dither-zoom" min="0.5" max="3" value="0.7" step="0.05">
-    </div>
-    <div class="dp-ctrl">
-      <div class="dp-row"><span class="dp-label">Grid Scale</span><span class="dp-val" id="val-dither-cell">7px</span></div>
-      <input type="range" id="ctrl-dither-cell" min="4" max="32" value="7" step="1">
-    </div>
-    <div class="dp-ctrl">
-      <div class="dp-row"><span class="dp-label">Brightness</span><span class="dp-val" id="val-dither-brightness">0.00</span></div>
-      <input type="range" id="ctrl-dither-brightness" min="-1" max="1" value="0" step="0.05">
-    </div>
-    <div class="dp-ctrl">
-      <div class="dp-row"><span class="dp-label">Contrast</span><span class="dp-val" id="val-dither-contrast">1.85</span></div>
-      <input type="range" id="ctrl-dither-contrast" min="0.1" max="4" value="1.85" step="0.05">
-    </div>
-    <div class="dp-ctrl">
-      <div class="dp-row"><span class="dp-label">Gamma</span><span class="dp-val" id="val-dither-gamma">1.2</span></div>
-      <input type="range" id="ctrl-dither-gamma" min="0.2" max="4" value="1.2" step="0.1">
-    </div>
-    <div class="dp-ctrl">
-      <div class="dp-row"><span class="dp-label">T1 Dense</span><span class="dp-val" id="val-dither-t1">0.98</span></div>
-      <input type="range" id="ctrl-dither-t1" min="0" max="1" value="0.98" step="0.01">
-    </div>
-    <div class="dp-ctrl">
-      <div class="dp-row"><span class="dp-label">T2 Mid</span><span class="dp-val" id="val-dither-t2">0.71</span></div>
-      <input type="range" id="ctrl-dither-t2" min="0" max="1" value="0.71" step="0.01">
-    </div>
-    <div class="dp-ctrl">
-      <div class="dp-row"><span class="dp-label">T3 Sparse</span><span class="dp-val" id="val-dither-t3">1.00</span></div>
-      <input type="range" id="ctrl-dither-t3" min="0" max="1" value="1.0" step="0.01">
-    </div>
-    <div class="dp-ctrl" style="display:flex; align-items:center; justify-content:space-between; margin-top:4px;">
-      <span class="dp-label">Mouse Interaction</span>
-      <input type="checkbox" id="ctrl-dither-proximity" checked>
-    </div>
-    <div class="dp-ctrl">
-      <div class="dp-row"><span class="dp-label">Blur Size</span><span class="dp-val" id="val-dither-mouse-blur">5.0</span></div>
-      <input type="range" id="ctrl-dither-mouse-blur" min="0" max="12" value="5" step="0.5">
-    </div>
-    <div class="dp-ctrl">
-      <div class="dp-row"><span class="dp-label">Blur Amount</span><span class="dp-val" id="val-dither-mouse-blur-amount">1.0</span></div>
-      <input type="range" id="ctrl-dither-mouse-blur-amount" min="0" max="1" value="1" step="0.05">
-    </div>
-    </div><!-- /.dp-body -->
-  </div>
 
   <!-- Intro overlay (removed after animation) -->
   <div id="intro"></div>
@@ -1096,78 +563,33 @@
 
     // ── Config ──
     const config = {
-      effect: 'hue-stretch-y-2',
       duration: 360,
       stagger: 85,
       pauseAfterComma: 320,
       easing: 'cubic-bezier(0.87, 0, 0.13, 1)',
-      blur: 12,
-      translate: 12,
-      strokeWidth: 10,
       stretchAmount: 2,
       stretchBlur: 5,
-      stretchColor1: CSS.supports('color', 'color(display-p3 0 0 0)') ? 'color(display-p3 0 0.84 1)' : '#00ccff',
-      stretchColor2: CSS.supports('color', 'color(display-p3 0 0 0)') ? 'color(display-p3 1 0.46 0.89)' : '#ff75e1',
       hueColor: CSS.supports('color', 'color(display-p3 0 0 0)') ? 'color(display-p3 0.992 0.263 1)' : '#fd43ff',
       hueAngle: 180,
-      stretchFadeDuration: 1600,
-      perLetter: false,
-    };
-
-    const ditherPresets = {
-      eye: {
-        cell: 7, brightness: 0, contrast: 1.85, gamma: 1.2,
-        t1: 0.98, t2: 0.71, t3: 1.0,
-        mouseBlur: 5.0, mouseBlurAmount: 1.0,
-        zoom: 0.7,
-        invert: true,
-      },
-      butterfly: {
-        cell: 7, brightness: 0, contrast: 1.85, gamma: 1.2,
-        t1: 0.98, t2: 0.71, t3: 0.55,
-        mouseBlur: 3, mouseBlurAmount: 1.0,
-        zoom: 0.7,
-        invert: false,
-      },
     };
 
     const ditherConfig = {
-      ...ditherPresets.eye,
+      cell: 7, brightness: 0, contrast: 1.85, gamma: 1.2,
+      t1: 0.98, t2: 0.71, t3: 1.0,
+      mouseBlur: 5.0, mouseBlurAmount: 1.0,
+      zoom: 0.7,
+      invert: true,
       proximityEnabled: true,
       proximityRadius: 330,
       shapeColor: '#000000',  // dither shape fill — animates from pink → black on first reveal
     };
 
-    const effectDefaults = {
-      blob:     { blur: 3  },
-      'blur-up':{ blur: 12 },
-      blur:     { blur: 12 },
-    };
-
-    function updatePanelForEffect(effect) {
-      document.querySelectorAll('#dev-sidebar .ctrl-group').forEach(group => {
-        const shown = group.dataset.for.split(' ').includes(effect);
-        group.style.display = shown ? 'block' : 'none';
-      });
-
-      // Apply per-effect defaults for sliders
-      const defaults = effectDefaults[effect] || {};
-      if ('blur' in defaults) {
-        config.blur = defaults.blur;
-        document.getElementById('ctrl-blur').value = defaults.blur;
-        document.getElementById('val-blur').textContent = defaults.blur + 'px';
-      }
-    }
-
     // ── Split text into word/letter spans ──
     function buildWords(el) {
       if (el.dataset.built) return;
-
-      // Preserve original HTML so we can rebuild when toggling per-letter
-      if (!el.dataset.originalHtml) el.dataset.originalHtml = el.innerHTML;
       el.dataset.built = '1';
 
-      const raw = el.dataset.originalHtml
+      const raw = el.innerHTML
         .replace(/&amp;/g, '&')
         .replace(/&nbsp;/g, '\u00a0')
         .replace(/®/g, '<sup>®</sup>')
@@ -1177,169 +599,18 @@
       el.innerHTML = tokens.map(token => {
         const word = token.trimEnd();
         const space = token.slice(word.length);
-        if (config.perLetter) {
-          // Split word into individual character spans, keeping <sup>…</sup> as one unit
-          // Wrap in .word-group so the word never breaks across lines
-          const letters = [];
-          let i = 0;
-          while (i < word.length) {
-            if (word.slice(i).startsWith('<sup>')) {
-              const end = word.indexOf('</sup>', i) + 6;
-              letters.push(`<span class="word">${word.slice(i, end)}</span>`);
-              i = end;
-            } else {
-              letters.push(`<span class="word">${word[i]}</span>`);
-              i++;
-            }
-          }
-          return `<span class="word-group">${letters.join('')}</span>${space || ''}`;
-        } else {
-          return `<span class="word">${word}</span>${space || ''}`;
-        }
+        return `<span class="word">${word}</span>${space || ''}`;
       }).join('');
-    }
-
-    function rebuildAndReplay() {
-      slides.forEach(slide => {
-        const el = slide.querySelector('.slide-text');
-        el.removeAttribute('data-built');
-        el.classList.remove('animating');
-      });
-      animateIn(slides[currentSlide].querySelector('.slide-text'));
     }
 
     // ── Apply CSS custom props ──
     function applyConfig(el) {
       el.style.setProperty('--duration', config.duration + 'ms');
       el.style.setProperty('--easing', config.easing);
-      el.style.setProperty('--blur-amount', config.blur + 'px');
-      el.style.setProperty('--translate-amount', config.translate + 'px');
-      el.style.setProperty('--stroke-width', config.strokeWidth + 'px');
       el.style.setProperty('--stretch-amount', config.stretchAmount);
       el.style.setProperty('--stretch-blur', config.stretchBlur + 'px');
-      el.style.setProperty('--stretch-color1', config.stretchColor1);
-      el.style.setProperty('--stretch-color2', config.stretchColor2);
       el.style.setProperty('--hue-color', config.hueColor);
       el.style.setProperty('--hue-angle', config.hueAngle * -1 + 'deg');
-      el.dataset.effect = config.effect;
-    }
-
-    // ── Easing ──
-    function expoOut(t) {
-      return t >= 1 ? 1 : 1 - Math.pow(2, -10 * t);
-    }
-
-    // ── JS blob resolve: after each word fades in, animate its stroke+blur to zero ──
-    // Single shared RAF tick for all resolving words; supports pause/resume.
-    function animateBlobStrokes(words, duration, strokeWidth, blurAmount) {
-      let rafId = null;
-      let pausedAt = null;
-      let cancelled = false;
-      const resolveStarts = {}; // index → startTime
-
-      // Set initial inline state (words are still opacity:0 so no visible flash)
-      words.forEach(w => {
-        w.style.webkitTextStrokeWidth = strokeWidth + 'px';
-        w.style.filter = `blur(${blurAmount}px) contrast(5)`;
-      });
-
-      function tick(now) {
-        let anyActive = false;
-        words.forEach((w, i) => {
-          if (!(i in resolveStarts)) return;
-          const t = Math.min((now - resolveStarts[i]) / duration, 1);
-          const e = expoOut(t);
-          w.style.webkitTextStrokeWidth = (strokeWidth * (1 - e)).toFixed(3) + 'px';
-          w.style.filter = `blur(${(blurAmount * (1 - e)).toFixed(3)}px) contrast(${(1 + 4 * (1 - e)).toFixed(3)})`;
-          if (t < 1) { anyActive = true; }
-          else { w.style.filter = ''; w.style.webkitTextStrokeWidth = '0px'; delete resolveStarts[i]; }
-        });
-        rafId = anyActive ? requestAnimationFrame(tick) : null;
-      }
-
-      // When each word's opacity fade ends, start its blob resolve
-      words.forEach((w, i) => {
-        w.addEventListener('animationend', function onEnd() {
-          w.removeEventListener('animationend', onEnd);
-          if (cancelled) return;
-          resolveStarts[i] = performance.now();
-          if (!rafId) rafId = requestAnimationFrame(tick);
-        });
-      });
-
-      return {
-        pause() {
-          if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-          pausedAt = performance.now();
-        },
-        resume() {
-          if (pausedAt !== null) {
-            const offset = performance.now() - pausedAt;
-            for (const i in resolveStarts) resolveStarts[i] += offset;
-            pausedAt = null;
-            if (Object.keys(resolveStarts).length && !rafId) rafId = requestAnimationFrame(tick);
-          }
-        },
-        cancel() {
-          cancelled = true;
-          if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-          words.forEach(w => { w.style.webkitTextStrokeWidth = ''; w.style.filter = ''; });
-        }
-      };
-    }
-
-    let blobController = null;
-    let stretchColorController = null;
-
-    // ── Phase 2 color fade: hueColor → text color, triggered per-word after animationend ──
-    function animateStretchColors(words, fromColor) {
-      let cancelled = false;
-      const d = config.stretchFadeDuration;
-
-      words.forEach(w => {
-        w.addEventListener('animationend', function onEnd() {
-          w.removeEventListener('animationend', onEnd);
-          if (cancelled) return;
-
-          // Pin the animation's final state as inline styles, then kill the
-          // animation so fill-mode stops overriding the cascade.
-          w.style.opacity = '1';
-          w.style.color = fromColor;
-          w.style.animationName = 'none';
-          // Drop the GPU compositor layer Safari held onto for `filter`/`transform`
-          // — otherwise text rasterizes through a sub-pixel filter buffer (blurry).
-          w.style.filter = 'none';
-          w.style.transform = 'none';
-
-          // Double-rAF: let the browser register the killed-animation state,
-          // then start the transition to the inherited text color.
-          requestAnimationFrame(() => requestAnimationFrame(() => {
-            if (cancelled) return;
-            w.style.transition = `color ${d}ms ease`;
-            requestAnimationFrame(() => {
-              if (cancelled) return;
-              w.style.color = '';
-              setTimeout(() => {
-                if (cancelled) return;
-                w.style.opacity = '';
-                w.style.transition = '';
-              }, d);
-            });
-          }));
-        });
-      });
-
-      return {
-        cancel() {
-          cancelled = true;
-          words.forEach(w => {
-            w.style.color = '';
-            w.style.opacity = '';
-            w.style.animationName = '';
-            w.style.transition = '';
-          });
-        }
-      };
     }
 
     // ── Animate words in ──
@@ -1347,28 +618,19 @@
       buildWords(el);
       applyConfig(el);
 
-      // Cancel any running phase-2 animations
-      blobController?.cancel();
-      blobController = null;
-      stretchColorController?.cancel();
-      stretchColorController = null;
-
       el.classList.remove('animating');
       void el.offsetWidth;
 
       // Clear all lingering inline styles from previous run
       el.querySelectorAll('.word').forEach(w => {
-        w.style.color = '';
-        w.style.opacity = '';
         w.style.animationName = '';
-        w.style.transition = '';
         w.style.transformOrigin = '';
         w.style.filter = '';
         w.style.transform = '';
       });
 
-      const isStretch = config.effect === 'hue-stretch-y' || config.effect === 'hue-stretch-y-2' || config.effect === 'stretch-y';
-      const transformOriginOverride = isStretch && scrollDirection < 0 ? 'center calc(100% + 4px)' : '';
+      // When scrolling backwards, anchor the stretch from the bottom edge
+      const transformOriginOverride = scrollDirection < 0 ? 'center calc(100% + 4px)' : '';
 
       let cumDelay = 0;
       el.querySelectorAll('.word').forEach((w) => {
@@ -1380,30 +642,19 @@
 
       requestAnimationFrame(() => {
         el.classList.add('animating');
-        if (config.effect === 'blob') {
-          blobController = animateBlobStrokes(
-            Array.from(el.querySelectorAll('.word')),
-            config.duration, config.strokeWidth, config.blur
-          );
-        } else if (config.effect === 'hue-stretch-y') { // Hue Warp 1 only — Hue Warp 2 transitions in CSS
-          stretchColorController = animateStretchColors(Array.from(el.querySelectorAll('.word')), config.hueColor);
-        }
 
         // Safari renders text blurry when it sits on a GPU compositor layer left
         // behind by `filter: blur(0)` / `transform: scaleY(1)` final keyframe state.
         // Killing `animation-name` drops the keyframe-fill cascade so inline
         // `filter: none` / `transform: none` win and the GPU layer is destroyed.
-        // blob/hue-stretch-y manage filter via JS controllers and clean up themselves.
-        if (config.effect !== 'blob' && config.effect !== 'hue-stretch-y') {
-          el.querySelectorAll('.word').forEach(w => {
-            w.addEventListener('animationend', function onEnd() {
-              w.removeEventListener('animationend', onEnd);
-              w.style.animationName = 'none';
-              w.style.filter = 'none';
-              w.style.transform = 'none';
-            });
+        el.querySelectorAll('.word').forEach(w => {
+          w.addEventListener('animationend', function onEnd() {
+            w.removeEventListener('animationend', onEnd);
+            w.style.animationName = 'none';
+            w.style.filter = 'none';
+            w.style.transform = 'none';
           });
-        }
+        });
       });
     }
 
@@ -1563,7 +814,6 @@
     // ── Arrow keys — advance / go back ──
     document.addEventListener('keydown', (e) => {
       if (introRunning) return;
-      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA')) return;
       if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
         e.preventDefault();
         const next = slides[Math.min(currentSlide + 1, slides.length - 1)];
@@ -1575,164 +825,6 @@
       }
     });
 
-
-    // ── Controls ──
-    function replay() {
-      animateIn(slides[currentSlide].querySelector('.slide-text'));
-    }
-
-    function bindRange(id, valId, key, unit) {
-      const input = document.getElementById(id);
-      const display = document.getElementById(valId);
-      input.addEventListener('input', () => {
-        config[key] = parseFloat(input.value);
-        display.textContent = input.value + unit;
-        replay();
-      });
-    }
-
-    bindRange('ctrl-duration', 'val-duration', 'duration', 'ms');
-    bindRange('ctrl-stagger', 'val-stagger', 'stagger', 'ms');
-    bindRange('ctrl-comma-pause', 'val-comma-pause', 'pauseAfterComma', 'ms');
-    bindRange('ctrl-blur', 'val-blur', 'blur', 'px');
-    bindRange('ctrl-translate', 'val-translate', 'translate', 'px');
-    bindRange('ctrl-stroke', 'val-stroke', 'strokeWidth', 'px');
-    bindRange('ctrl-stretch-amount', 'val-stretch-amount', 'stretchAmount', '×');
-    bindRange('ctrl-stretch-blur', 'val-stretch-blur', 'stretchBlur', 'px');
-    document.getElementById('ctrl-stretch-color1').addEventListener('input', e => { config.stretchColor1 = e.target.value; replay(); });
-    document.getElementById('ctrl-stretch-color2').addEventListener('input', e => { config.stretchColor2 = e.target.value; replay(); });
-    document.getElementById('ctrl-hue-color').addEventListener('input', e => { config.hueColor = e.target.value; replay(); });
-    bindRange('ctrl-hue-angle', 'val-hue-angle', 'hueAngle', '°');
-    bindRange('ctrl-stretch-fade', 'val-stretch-fade', 'stretchFadeDuration', 'ms');
-
-    document.getElementById('ctrl-effect').addEventListener('change', e => {
-      config.effect = e.target.value;
-      updatePanelForEffect(e.target.value);
-      animateIn(slides[currentSlide].querySelector('.slide-text'));
-    });
-
-    updatePanelForEffect(config.effect); // init panel visibility
-
-    const easingSelect = document.getElementById('ctrl-easing');
-    const customEasingInput = document.getElementById('ctrl-custom-easing');
-
-    easingSelect.addEventListener('change', e => {
-      if (e.target.value === 'custom') {
-        customEasingInput.style.display = '';
-        customEasingInput.focus();
-      } else {
-        customEasingInput.style.display = 'none';
-        config.easing = e.target.value;
-        replay();
-      }
-    });
-
-    customEasingInput.addEventListener('input', e => {
-      config.easing = e.target.value;
-      replay();
-    });
-
-    const pauseBtn = document.getElementById('pause-btn');
-    let paused = false;
-
-    pauseBtn.addEventListener('click', () => {
-      paused = !paused;
-      const words = slides[currentSlide].querySelectorAll('.slide-text .word');
-      words.forEach(w => w.style.animationPlayState = paused ? 'paused' : 'running');
-      if (paused) blobController?.pause();
-      else blobController?.resume();
-      pauseBtn.textContent = paused ? '▶ Play' : '⏸ Pause';
-    });
-
-    document.getElementById('ctrl-dark-mode').addEventListener('change', e => {
-      document.documentElement.classList.toggle('dark', e.target.checked);
-    });
-
-    // ── Dither panel toggle ──
-    document.getElementById('dither-panel-toggle').addEventListener('click', () => {
-      document.getElementById('dither-panel').classList.toggle('closed');
-    });
-
-    // ── Dither controls ──
-    function bindDither(id, valId, key, decimals) {
-      const input   = document.getElementById(id);
-      const display = document.getElementById(valId);
-      input.addEventListener('input', () => {
-        const v = parseFloat(input.value);
-        ditherConfig[key] = v;
-        display.textContent = decimals === 0 ? v + 'px' : v.toFixed(decimals);
-      });
-    }
-    bindDither('ctrl-dither-zoom',       'val-dither-zoom',       'zoom',       2);
-    bindDither('ctrl-dither-cell',       'val-dither-cell',       'cell',       0);
-    bindDither('ctrl-dither-brightness', 'val-dither-brightness', 'brightness', 2);
-    bindDither('ctrl-dither-contrast',   'val-dither-contrast',   'contrast',   2);
-    bindDither('ctrl-dither-gamma',      'val-dither-gamma',      'gamma',      1);
-    bindDither('ctrl-dither-t1',         'val-dither-t1',         't1',         2);
-    bindDither('ctrl-dither-t2',         'val-dither-t2',         't2',         2);
-    bindDither('ctrl-dither-t3',         'val-dither-t3',         't3',         2);
-    document.getElementById('ctrl-dither-proximity').addEventListener('change', e => {
-      ditherConfig.proximityEnabled = e.target.checked;
-    });
-    bindDither('ctrl-dither-mouse-blur',        'val-dither-mouse-blur',        'mouseBlur',       1);
-    bindDither('ctrl-dither-mouse-blur-amount', 'val-dither-mouse-blur-amount', 'mouseBlurAmount', 2);
-
-    function applyDitherPreset(name) {
-      const preset = ditherPresets[name];
-      if (!preset) return;
-      Object.assign(ditherConfig, preset);
-      // Sync UI controls + value labels
-      const map = [
-        ['ctrl-dither-zoom',             'val-dither-zoom',             'zoom',             v => v.toFixed(2)],
-        ['ctrl-dither-cell',             'val-dither-cell',             'cell',             v => v + 'px'],
-        ['ctrl-dither-brightness',       'val-dither-brightness',       'brightness',       v => v.toFixed(2)],
-        ['ctrl-dither-contrast',         'val-dither-contrast',         'contrast',         v => v.toFixed(2)],
-        ['ctrl-dither-gamma',            'val-dither-gamma',            'gamma',            v => v.toFixed(1)],
-        ['ctrl-dither-t1',               'val-dither-t1',               't1',               v => v.toFixed(2)],
-        ['ctrl-dither-t2',               'val-dither-t2',               't2',               v => v.toFixed(2)],
-        ['ctrl-dither-t3',               'val-dither-t3',               't3',               v => v.toFixed(2)],
-        ['ctrl-dither-mouse-blur',       'val-dither-mouse-blur',       'mouseBlur',        v => v.toFixed(1)],
-        ['ctrl-dither-mouse-blur-amount','val-dither-mouse-blur-amount','mouseBlurAmount',  v => v.toFixed(2)],
-      ];
-      map.forEach(([inputId, valId, key, fmt]) => {
-        const input = document.getElementById(inputId);
-        const display = document.getElementById(valId);
-        if (input)   input.value = preset[key];
-        if (display) display.textContent = fmt(preset[key]);
-      });
-    }
-
-    document.getElementById('ctrl-dither-source').addEventListener('change', e => {
-      applyDitherPreset(e.target.value);
-      ditherBg?.setSource(e.target.value);
-    });
-
-    document.getElementById('ctrl-per-letter').addEventListener('change', e => {
-      config.perLetter = e.target.checked;
-      if (config.perLetter) {
-        config.stagger = 15;
-        document.getElementById('ctrl-stagger').value = 15;
-        document.getElementById('val-stagger').textContent = '15ms';
-      } else {
-        config.stagger = 85;
-        document.getElementById('ctrl-stagger').value = 85;
-        document.getElementById('val-stagger').textContent = '85ms';
-      }
-      rebuildAndReplay();
-    });
-
-    document.getElementById('replay-btn').addEventListener('click', () => {
-      paused = false;
-      pauseBtn.textContent = '⏸ Pause';
-      animateIn(slides[currentSlide].querySelector('.slide-text'));
-    });
-
-    // ── Sidebar toggle ──
-    const devSidebar = document.getElementById('dev-sidebar');
-    const sidebarToggle = document.getElementById('sidebar-toggle');
-    sidebarToggle.addEventListener('click', () => {
-      devSidebar.classList.toggle('closed');
-    });
 
     // ── Module-level intro-word state (set by runIntro, used by observer + expand/collapse) ──
     let introWordSci = null;
@@ -1935,17 +1027,14 @@
               w.classList.remove('intro-word-anim');
               w.style.animationDelay = '';
             });
-            document.getElementById('dither-panel').classList.add('visible');
 
             // Wait for click, scroll, or key press to collapse to Sci/Fi
             function doCollapse(e) {
-              if (e && e.target && e.target.closest('#dither-panel')) return;
               document.removeEventListener('click',      doCollapse);
               document.removeEventListener('wheel',      doCollapse);
               document.removeEventListener('touchstart', doCollapse);
 
               ditherBg?.fadeOut(500);
-              document.getElementById('dither-panel').classList.remove('visible');
 
               const squishEasing   = 'cubic-bezier(0.77, 0, 0.175, 1)';
               const squishDuration = 500;
@@ -1985,7 +1074,7 @@
                   document.body.classList.remove('intro-active');
                   introRunning = false;
                   startObserving();
-                  // Skip the butterfly slide — land directly on slide 1
+                  // Skip slide 0 (dither bg with intro words) — land directly on slide 1
                   slides[1].scrollIntoView({ behavior: 'instant' });
                 }, 150);
 
@@ -2022,11 +1111,7 @@
 
     function initDitherBg() {
       const bgCanvas = document.getElementById('dither-bg');
-      const videos = {
-        eye:       document.getElementById('dither-video-eye'),
-        butterfly: document.getElementById('dither-video-butterfly'),
-      };
-      let video = videos.eye;
+      const video = document.getElementById('dither-video-eye');
       if (!bgCanvas || !video) return null;
 
       const bgCtx      = bgCanvas.getContext('2d');
@@ -2182,6 +1267,8 @@
       const BRIGHTNESS_DURATION_FIRST   = 2000; // ms to ramp brightness in on the cinematic first run
       const BRIGHTNESS_DURATION_RETURN  = 2000; // ms to ramp on loop re-entry
       const BRIGHTNESS_FROM          = -1;
+      const BRIGHTNESS_TARGET        = 0;    // canonical brightness once revealed
+      const MOUSE_BLUR_AMOUNT_DEFAULT = 1.0; // canonical mouse blur amount once revealed
       const MOUSE_BLUR_OUT_DURATION  = 300;  // ms to fade out proximity effect
       const SHAPE_COLOR_FROM         = '#ff2bd6'; // vivid pink at reveal start
       const SHAPE_COLOR_TO           = '#000000'; // black after reveal
@@ -2236,18 +1323,13 @@
         shapeColorRAF = requestAnimationFrame(step);
       }
 
-      function tweenBrightness(from, to, duration, updateUI = true) {
+      function tweenBrightness(from, to, duration) {
         if (brightnessRAF) cancelAnimationFrame(brightnessRAF);
-        const slider  = updateUI ? document.getElementById('ctrl-dither-brightness') : null;
-        const display = updateUI ? document.getElementById('val-dither-brightness')  : null;
         const t0 = performance.now();
         function step(now) {
           const t = Math.min(1, (now - t0) / duration);
           const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
-          const v = from + (to - from) * eased;
-          ditherConfig.brightness = v;
-          if (slider)  slider.value = v;
-          if (display) display.textContent = v.toFixed(2);
+          ditherConfig.brightness = from + (to - from) * eased;
           if (t < 1) brightnessRAF = requestAnimationFrame(step);
           else        brightnessRAF = null;
         }
@@ -2277,14 +1359,9 @@
           if (shapeColorRAF)     { cancelAnimationFrame(shapeColorRAF); shapeColorRAF = null; }
           if (shapeRevealTimer)  { clearTimeout(shapeRevealTimer);      shapeRevealTimer = null; }
 
-          // Restore mouseBlurAmount from the slider (the canonical user value)
-          const mbSlider = document.getElementById('ctrl-dither-mouse-blur-amount');
-          if (mbSlider) ditherConfig.mouseBlurAmount = parseFloat(mbSlider.value);
-
-          // Capture target brightness from the slider (canonical user value),
-          // not from ditherConfig.brightness which may be -1 after a fadeOut.
-          const brSlider = document.getElementById('ctrl-dither-brightness');
-          const targetBrightness = brSlider ? parseFloat(brSlider.value) : 0;
+          // Restore canonical brightness/mouseBlurAmount baselines (may have been
+          // tweened to 0 / -1 by the previous fadeOut).
+          ditherConfig.mouseBlurAmount = MOUSE_BLUR_AMOUNT_DEFAULT;
           ditherConfig.brightness = BRIGHTNESS_FROM;
           ditherConfig.shapeColor = SHAPE_COLOR_FROM;
           bgCanvas.style.transition = 'none';
@@ -2298,10 +1375,8 @@
           const delay   = hasStartedOnce ? START_DELAY_RETURN         : START_DELAY_FIRST;
           const rampDur = hasStartedOnce ? BRIGHTNESS_DURATION_RETURN : BRIGHTNESS_DURATION_FIRST;
           hasStartedOnce = true;
-          // updateUI=false: the slider is the canonical user-set target — don't let the
-          // reveal animation overwrite it (would drift the target on a mid-tween cancel).
           const startTweens = () => {
-            tweenBrightness(BRIGHTNESS_FROM, targetBrightness, rampDur, /*updateUI=*/ false);
+            tweenBrightness(BRIGHTNESS_FROM, BRIGHTNESS_TARGET, rampDur);
             // Pink→black + hue-rotate sweep — delayed so it fires during the visible
             // portion of the brightness ramp (shapes are still mostly hidden at t=0).
             shapeRevealTimer = setTimeout(() => {
@@ -2339,7 +1414,7 @@
 
           const brightnessOutDuration = 1000;
           const opacityOutDuration    = 200;
-          tweenBrightness(ditherConfig.brightness, BRIGHTNESS_FROM, brightnessOutDuration, /*updateUI=*/ false);
+          tweenBrightness(ditherConfig.brightness, BRIGHTNESS_FROM, brightnessOutDuration);
           tweenMouseBlurAmount(ditherConfig.mouseBlurAmount, 0, MOUSE_BLUR_OUT_DURATION);
 
           fadeOutTimer = setTimeout(() => {
@@ -2354,19 +1429,6 @@
               video.pause();
             }, opacityOutDuration);
           }, brightnessOutDuration);
-        },
-        setSource(name) {
-          const next = videos[name];
-          if (!next || next === video) return;
-          const wasActive = !video.paused;
-          video.pause();
-          video.currentTime = 0;
-          video = next;
-          if (wasActive || rafId) {
-            video.currentTime = 0;
-            video.play().catch(() => {});
-            if (!rafId) render();
-          }
         },
       };
     }
