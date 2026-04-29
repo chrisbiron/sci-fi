@@ -9,7 +9,11 @@ A marketing/company website for Science Fiction. Scroll-snap layout with word-by
 **Code archive:** the local `archive/dev-controls-and-effects` git branch holds the previous version with dev sidebar (effect/timing controls), dither panel UI, pause/replay buttons, butterfly source, and 5 alternative word effects (`blur`, `blur-up`, `blob`, `stretch-y`, `hue-stretch-y` Hue Warp 1). `git checkout archive/dev-controls-and-effects` to restore.
 
 ## File Structure
-- `index.html` — Entire site: HTML, CSS, and JS in one self-contained file
+- `index.html` — HTML markup, head meta tags + JSON-LD, references `./style.css` and `./script.js` (defer)
+- `style.css` — All styles (fonts, theme vars, slides, intro, dither, backers ticker)
+- `script.js` — All behavior (intro animation, dither engine, IO observer, loop, theme toggle)
+- `robots.txt`, `sitemap.xml` — SEO scaffolding
+- `apple-touch-icon.png` — 180×180 white-on-black logo for iOS home-screen install
 - `fonts/Rhymes Text Medium.woff2` / `.woff` — Rhymes Text Medium (local copies required; `local()` font loading doesn't work for this font)
 - `fonts/untitled-sans-regular.woff2` / `untitled-sans-medium.woff2` — Untitled Sans, embedded so visitors without it installed locally still see the correct typeface
 - `eye.mp4` — eye video, source for the dither background on slide 0

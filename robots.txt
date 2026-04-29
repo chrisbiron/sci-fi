@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://chrisbiron.github.io/sci-fi/sitemap.xml

@@ -1,0 +1,1154 @@
+    const slides = Array.from(document.querySelectorAll('.slide:not(.loop-sentinel)'));
+    const slidesContainer = document.getElementById('slides');
+    let currentSlide = 0;
+    let scrollDirection = 1; // 1 = down, -1 = up
+    let introRunning = true;
+    document.body.classList.add('intro-active');
+    document.body.classList.add('intro-black');
+
+    // ── Config ──
+    const config = {
+      duration: 360,
+      stagger: 85,
+      pauseAfterComma: 320,
+      easing: 'cubic-bezier(0.87, 0, 0.13, 1)',
+      stretchAmount: 2,
+      stretchBlur: 5,
+      hueColor: CSS.supports('color', 'color(display-p3 0 0 0)') ? 'color(display-p3 0.992 0.263 1)' : '#fd43ff',
+      hueAngle: 180,
+    };
+
+    const ditherConfig = {
+      cell: 7, brightness: 0, contrast: 1.85, gamma: 1.2,
+      t1: 0.98, t2: 0.71, t3: 1.0,
+      mouseBlur: 5.0, mouseBlurAmount: 1.0,
+      zoom: 0.7,
+      invert: true,
+      proximityEnabled: true,
+      proximityRadius: 330,
+      shapeColor: '#000000',  // dither shape fill — animates from pink → black on first reveal
+    };
+
+    // ── Split text into word/letter spans ──
+    function buildWords(el) {
+      if (el.dataset.built) return;
+      el.dataset.built = '1';
+
+      const raw = el.innerHTML
+        .replace(/&amp;/g, '&')
+        .replace(/&nbsp;/g, '\u00a0')
+        .replace(/®/g, '<sup>®</sup>')
+        .trim();
+
+      const tokens = raw.split(/(?<= )/);
+      el.innerHTML = tokens.map(token => {
+        const word = token.trimEnd();
+        const space = token.slice(word.length);
+        return `<span class="word">${word}</span>${space || ''}`;
+      }).join('');
+    }
+
+    // ── Apply CSS custom props ──
+    function applyConfig(el) {
+      el.style.setProperty('--duration', config.duration + 'ms');
+      el.style.setProperty('--easing', config.easing);
+      el.style.setProperty('--stretch-amount', config.stretchAmount);
+      el.style.setProperty('--stretch-blur', config.stretchBlur + 'px');
+      el.style.setProperty('--hue-color', config.hueColor);
+      el.style.setProperty('--hue-angle', config.hueAngle * -1 + 'deg');
+    }
+
+    // ── Animate words in ──
+    function animateIn(el) {
+      buildWords(el);
+      applyConfig(el);
+
+      el.classList.remove('animating');
+      void el.offsetWidth;
+
+      // Clear all lingering inline styles from previous run
+      el.querySelectorAll('.word').forEach(w => {
+        w.style.animationName = '';
+        w.style.transformOrigin = '';
+        w.style.filter = '';
+        w.style.transform = '';
+      });
+
+      // When scrolling backwards, anchor the stretch from the bottom edge
+      const transformOriginOverride = scrollDirection < 0 ? 'center calc(100% + 4px)' : '';
+
+      let cumDelay = 0;
+      el.querySelectorAll('.word').forEach((w) => {
+        w.style.transformOrigin = transformOriginOverride;
+        w.style.animationDelay = cumDelay + 'ms';
+        cumDelay += config.stagger;
+        if (w.textContent.trimEnd().endsWith(',')) cumDelay += config.pauseAfterComma;
+      });
+
+      requestAnimationFrame(() => {
+        el.classList.add('animating');
+
+        // Safari renders text blurry when it sits on a GPU compositor layer left
+        // behind by `filter: blur(0)` / `transform: scaleY(1)` final keyframe state.
+        // Killing `animation-name` drops the keyframe-fill cascade so inline
+        // `filter: none` / `transform: none` win and the GPU layer is destroyed.
+        el.querySelectorAll('.word').forEach(w => {
+          w.addEventListener('animationend', function onEnd() {
+            w.removeEventListener('animationend', onEnd);
+            w.style.animationName = 'none';
+            w.style.filter = 'none';
+            w.style.transform = 'none';
+          });
+        });
+      });
+    }
+
+    // ── Slide 0 scroll trigger — fires squish+collapse the moment user scrolls away ──
+    let _slide0ScrollFn = null;
+    let _slide0ScrollArmedAt = 0;
+    // When the user scrolls down from slide 0, collapseIntroWords fires the squish.
+    // Defer the next slide's animateIn so its timing matches the first-intro doCollapse
+    // path (which has 500ms squish + 150ms wait before slide 1 enters). Without this
+    // delay the slide-text animation would start mid-squish, way earlier than the
+    // first-intro version.
+    const COLLAPSE_TO_SLIDE_DELAY = 500;
+    let _collapseFiredAt = 0;
+    const _pendingAnimateInTimers = new Map();
+    function attachSlide0ScrollTrigger() {
+      detachSlide0ScrollTrigger();
+      _slide0ScrollArmedAt = performance.now();
+      // Delay by two frames to skip any settling scroll events after scrollTop=0
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        let prevScrollTop = slidesContainer.scrollTop;
+        _slide0ScrollFn = () => {
+          // Grace period after entering slide 0 — wheel/touch momentum from
+          // a loop or scroll-up can carry the user past 10% before they've
+          // settled, which would immediately collapse the intro words and
+          // fade out the eye that just animated in.
+          if (performance.now() - _slide0ScrollArmedAt < 600) return;
+          const cur = slidesContainer.scrollTop;
+          // Require a meaningful scroll (>10% slide height) to avoid false triggers
+          if (cur > prevScrollTop && cur > window.innerHeight * 0.1) {
+            detachSlide0ScrollTrigger();
+            collapseIntroWords();
+            ditherBg?.fadeOut(400);
+          }
+          prevScrollTop = cur;
+        };
+        slidesContainer.addEventListener('scroll', _slide0ScrollFn, { passive: true });
+      }));
+    }
+    function detachSlide0ScrollTrigger() {
+      if (_slide0ScrollFn) {
+        slidesContainer.removeEventListener('scroll', _slide0ScrollFn);
+        _slide0ScrollFn = null;
+      }
+    }
+
+    // ── Animate slide button in after the text words finish staggering ──
+    function animatePressList(list) {
+      list.classList.remove('animating', 'settled');
+      if (list._settleTimer) { clearTimeout(list._settleTimer); list._settleTimer = null; }
+      void list.offsetWidth;
+
+      const supportsP3 = CSS.supports('color', 'color(display-p3 0 0 0)');
+      list.style.setProperty('--hue-color', supportsP3
+        ? 'color(display-p3 0.835 0.184 0.753)'
+        : config.hueColor);
+      list.style.setProperty('--hue-angle', config.hueAngle + 'deg');
+      list.style.setProperty('--stretch-amount', config.stretchAmount);
+      list.style.setProperty('--stretch-blur', config.stretchBlur + 'px');
+      list.style.setProperty('--duration', config.duration + 'ms');
+      list.style.setProperty('--easing', config.easing);
+
+      const items = list.querySelectorAll('.press-item');
+      const stagger = Math.max(config.stagger, 180);
+      items.forEach((item, i) => {
+        item.style.animationDelay = (i * stagger) + 'ms';
+      });
+      list.classList.add('animating');
+
+      const totalMs = (items.length - 1) * stagger + config.duration + 60;
+      list._settleTimer = setTimeout(() => {
+        list.classList.remove('animating');
+        list.classList.add('settled');
+        list._settleTimer = null;
+      }, totalMs);
+
+      // Animate the "Backed by" label and the backers pill in (same keyframe as
+      // the slide button), staggered after the last press item.
+      const slide = list.closest('.slide');
+      const baseDelay = items.length * stagger;
+      const label = slide && slide.querySelector('.backers-label');
+      if (label) animateBackersElement(label, baseDelay);
+      const pill = slide && slide.querySelector('.backers-pill');
+      if (pill) animateBackersElement(pill, baseDelay + 80); // small stagger after label
+    }
+
+    function animateBackersElement(el, delay) {
+      el.classList.remove('animating');
+      el.style.animationName = '';
+      el.style.filter = '';
+      el.style.transform = '';
+      el.style.opacity = '';
+      void el.offsetWidth;
+
+      // Match the in-keyframe defaults (light pink for light mode, dark purple for
+      // dark) so the start-state flash matches the surrounding theme.
+      const isDark = document.documentElement.classList.contains('dark');
+      const supportsP3 = CSS.supports('color', 'color(display-p3 0 0 0)');
+      el.style.setProperty('--hue-color', isDark
+        ? (supportsP3 ? 'color(display-p3 0.2 0.063 0.2)' : '#331033')
+        : (supportsP3 ? 'color(display-p3 1 0.87 1)' : '#FFDCFF'));
+      el.style.setProperty('--hue-angle', config.hueAngle * -1 + 'deg');
+      el.style.setProperty('--stretch-amount', config.stretchAmount);
+      el.style.setProperty('--stretch-blur', config.stretchBlur + 'px');
+      el.style.setProperty('--duration', config.duration + 'ms');
+      el.style.setProperty('--easing', config.easing);
+      el.style.animationDelay = delay + 'ms';
+
+      requestAnimationFrame(() => el.classList.add('animating'));
+
+      // Same Safari-blur fix as animateBtn — kill animation-name and clear
+      // filter/transform once the keyframe ends so the layer is destroyed.
+      el.addEventListener('animationend', function onEnd() {
+        el.removeEventListener('animationend', onEnd);
+        el.style.animationName = 'none';
+        el.style.filter = 'none';
+        el.style.transform = 'none';
+        el.style.opacity = '1';
+      });
+    }
+
+    function animateBtn(btn, textEl) {
+      btn.classList.remove('animating');
+      void btn.offsetWidth;
+
+      // Find the delay of the last word to stagger after it
+      let maxDelay = 0;
+      if (textEl) {
+        textEl.querySelectorAll('.word').forEach(w => {
+          const d = parseFloat(w.style.animationDelay) || 0;
+          if (d > maxDelay) maxDelay = d;
+        });
+      }
+
+      btn.style.setProperty('--hue-color', CSS.supports('color', 'color(display-p3 0 0 0)')
+        ? 'color(display-p3 1 0.87 1);'
+        : '#FFDCFF');
+      btn.style.setProperty('--hue-angle', config.hueAngle * -1 + 'deg');
+      btn.style.setProperty('--stretch-amount', config.stretchAmount);
+      btn.style.setProperty('--stretch-blur', config.stretchBlur + 'px');
+      btn.style.setProperty('--duration', config.duration + 'ms');
+      btn.style.setProperty('--easing', config.easing);
+      btn.style.animationDelay = (maxDelay + config.stagger) + 'ms';
+
+      requestAnimationFrame(() => btn.classList.add('animating'));
+
+      // Drop the GPU compositor layer Safari held onto for `filter`/`transform`
+      // once the keyframe ends. Need to kill `animation-name` first because
+      // `animation-fill-mode: both` keeps the end-frame `filter: blur(0)` winning
+      // over inline styles in the cascade.
+      btn.addEventListener('animationend', function onEnd() {
+        btn.removeEventListener('animationend', onEnd);
+        btn.style.animationName = 'none';
+        btn.style.filter = 'none';
+        btn.style.transform = 'none';
+        btn.style.opacity = '1';
+      });
+    }
+
+    // ── IntersectionObserver — animate in on enter, reset on exit ──
+    // Set true the moment the loop-sentinel triggers a jump back to slide 0, so the
+    // subsequent slide-0 observer fire doesn't restart the dither (we already started it).
+    let _loopJumpStartedDither = false;
+    let _loopLockedUntil = 0;
+    let _ditherStartLockedUntil = 0;
+
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        const slide    = entry.target;
+        const slideIdx = parseInt(slide.dataset.index);
+        const textEl   = slide.querySelector('.slide-text');
+
+        // Loop sentinel: jump back to slide 0 seamlessly. Kick the dither reveal NOW
+        // (not when slide 0 hits 60% visible) so the brightness ramp is already running
+        // by the time slide 0 has snapped into view.
+        if (slide.classList.contains('loop-sentinel')) {
+          if (entry.intersectionRatio >= 0.6) {
+            // ALWAYS reset scroll on every sentinel hit — IO can fire repeatedly
+            // during a single pass, and each reset fights the momentum that would
+            // otherwise pull the user back. The theme toggle is gated by the time
+            // lock so it only happens once per loop. Dither start is deferred to
+            // the slide-0 IO entry so the brightness ramp is visible alongside
+            // the word expand (matching the scroll-up behaviour).
+            slidesContainer.scrollTop = 0;
+            if (performance.now() >= _loopLockedUntil) {
+              _loopLockedUntil = performance.now() + 1500;
+              document.documentElement.classList.toggle('dark');
+            }
+          }
+          return;
+        }
+
+        if (entry.intersectionRatio >= 0.6) {
+          const newIdx = slides.indexOf(slide);
+          scrollDirection = newIdx >= currentSlide ? 1 : -1;
+          currentSlide = newIdx;
+          // For slides 1+, defer animateIn if we're still inside the post-collapse
+          // delay so the timing matches the first-intro doCollapse path.
+          const sinceCollapse = performance.now() - _collapseFiredAt;
+          const delayLeft = (slideIdx > 0)
+            ? Math.max(0, COLLAPSE_TO_SLIDE_DELAY - sinceCollapse)
+            : 0;
+          const fireAnimations = () => {
+            _pendingAnimateInTimers.delete(slide);
+            if (textEl) animateIn(textEl);
+            const btn = slide.querySelector('.slide-btn');
+            if (btn) animateBtn(btn, textEl);
+            const press = slide.querySelector('.press-list');
+            if (press) animatePressList(press);
+          };
+          if (delayLeft > 0) {
+            const prev = _pendingAnimateInTimers.get(slide);
+            if (prev) clearTimeout(prev);
+            _pendingAnimateInTimers.set(slide, setTimeout(fireAnimations, delayLeft));
+          } else {
+            fireAnimations();
+          }
+          if (slideIdx === 0) {
+            // Time-lock so a flickering IO (sentinel oscillation during a loop pass)
+            // can't restart the dither ramp multiple times.
+            if (performance.now() >= _ditherStartLockedUntil) {
+              _ditherStartLockedUntil = performance.now() + 1500;
+              ditherBg?.start();
+            }
+            expandIntroWords();
+            attachSlide0ScrollTrigger();
+          }
+        } else if (entry.intersectionRatio < 0.1) {
+          // Cancel any pending deferred animateIn so it doesn't fire on a now-hidden slide.
+          const pending = _pendingAnimateInTimers.get(slide);
+          if (pending) { clearTimeout(pending); _pendingAnimateInTimers.delete(slide); }
+          if (textEl) textEl.classList.remove('animating');
+          const btn = slide.querySelector('.slide-btn');
+          if (btn) { btn.classList.remove('animating'); btn.style.animationDelay = ''; btn.style.animationName = ''; btn.style.filter = ''; btn.style.transform = ''; btn.style.opacity = ''; }
+          const press = slide.querySelector('.press-list');
+          if (press) {
+            press.classList.remove('animating', 'settled');
+            if (press._settleTimer) { clearTimeout(press._settleTimer); press._settleTimer = null; }
+          }
+          slide.querySelectorAll('.backers-label, .backers-pill').forEach(el => {
+            el.classList.remove('animating');
+            el.style.animationDelay = '';
+            el.style.animationName  = '';
+            el.style.filter         = '';
+            el.style.transform      = '';
+            el.style.opacity        = '';
+          });
+          if (slideIdx === 0) detachSlide0ScrollTrigger();
+        }
+      });
+    }, { root: slidesContainer, threshold: [0, 0.1, 0.6] });
+
+    function startObserving() {
+      slides.forEach(slide => observer.observe(slide));
+      document.querySelectorAll('.loop-sentinel').forEach(s => observer.observe(s));
+    }
+
+    // ── Arrow keys — advance / go back ──
+    document.addEventListener('keydown', (e) => {
+      if (introRunning) return;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
+        e.preventDefault();
+        const next = slides[Math.min(currentSlide + 1, slides.length - 1)];
+        next.scrollIntoView({ behavior: 'smooth' });
+      } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault();
+        const prev = slides[Math.max(currentSlide - 1, 0)];
+        prev.scrollIntoView({ behavior: 'smooth' });
+      }
+    });
+
+
+    // ── Module-level intro-word state (set by runIntro, used by observer + expand/collapse) ──
+    let introWordSci = null;
+    let introWordFi  = null;
+    let introFiW     = 0;   // width of "Fi" at 13px
+    let wordsExpanded = false;
+    let _squishTimerId = null;
+
+    function onFiResize() {
+      if (!introWordFi || wordsExpanded) return;
+      introWordFi.style.transition = 'none';
+      introWordFi.style.left = (window.innerWidth - (window.innerWidth <= 640 ? 8 : 20) - introFiW) + 'px';
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        introWordFi.style.transition = '';
+      }));
+    }
+
+    // Edge offset for the expanded "Science" / "Fiction" words — matches the .expanded CSS.
+    const expandedEdgePx = () => (window.innerWidth <= 640 ? 24 : 200);
+
+    function expandIntroWords() {
+      if (!introWordSci || !introWordFi || wordsExpanded) return;
+
+      // Cancel any in-progress collapse (prevents the timeout removing .expanded mid-expand)
+      if (_squishTimerId) { clearTimeout(_squishTimerId); _squishTimerId = null; }
+
+      window.removeEventListener('resize', onFiResize);
+
+      // Mobile (slide 0 entry): slide the small Sci/Fi off the sides so the eye
+      // is unobstructed. Words slide back in when leaving slide 0.
+      if (window.innerWidth <= 640) {
+        window.removeEventListener('resize', onFiResize);
+        const sciW = introWordSci.getBoundingClientRect().width;
+        introWordSci.style.transition = '';
+        introWordSci.style.left = -(sciW + 20) + 'px';
+        introWordFi.style.transition = '';
+        introWordFi.style.left  = (window.innerWidth + 20) + 'px';
+        wordsExpanded = true;
+        return;
+      }
+
+      // Clear any inline animation/transition overrides from the intro so CSS defaults take over
+      introWordSci.style.animationName     = 'none';
+      introWordSci.style.animationDelay    = '0s';
+      introWordSci.style.animationDuration = '';
+      introWordSci.style.transition        = '';
+      // Clear inline `left` from a possibly-aborted collapse (300px squish) so the CSS
+      // `#intro-word-sci.expanded { left: 200px }` rule wins.
+      introWordSci.style.left              = '';
+      introWordFi.style.animationName      = 'none';
+      introWordFi.style.animationDelay     = '0s';
+      introWordFi.style.animationDuration  = '';
+      // Switch Fi: inline left → inline right (at current visual position), then animate to 50px
+      const rect = introWordFi.getBoundingClientRect();
+      introWordFi.style.transition = 'none';
+      introWordFi.style.left = 'auto';
+      introWordFi.style.right = (window.innerWidth - rect.right) + 'px';
+      introWordFi.offsetWidth; // force reflow
+      introWordFi.style.transition = '';
+      introWordFi.style.right = expandedEdgePx() + 'px';
+      introWordSci.classList.add('expanded');
+      introWordFi.classList.add('expanded');
+      wordsExpanded = true;
+    }
+
+    function collapseIntroWords() {
+      if (!introWordSci || !introWordFi || !wordsExpanded) return;
+      wordsExpanded = false;
+      _collapseFiredAt = performance.now();
+
+      // Mobile (slide 0 leave): slide the small Sci/Fi back in from the sides
+      // so they're visible while the user is on slide 1+.
+      if (window.innerWidth <= 640) {
+        introWordSci.style.transition = '';
+        introWordSci.style.left = ''; // CSS mobile `.p2 { left: 8px }` applies
+        introWordFi.style.transition = '';
+        introWordFi.style.left  = (window.innerWidth - 8 - introFiW) + 'px';
+        window.addEventListener('resize', onFiResize);
+        return;
+      }
+
+      const squishEasing   = 'cubic-bezier(0.77, 0, 0.175, 1)';
+      const squishDuration = 300;
+
+      // Step 1: pull toward center — same gap logic as the intro squish.
+      // Target a 100px gap when there's room, falling through to 5px when the
+      // words are already closer than 100px so there's always visible motion.
+      const sciRect = introWordSci.getBoundingClientRect();
+      const fiRect  = introWordFi.getBoundingClientRect();
+      const currentGap = fiRect.left - sciRect.right;
+      const targetGap  = currentGap > 200 ? 200 : 5;
+      const pullPerSide = Math.max(0, (currentGap - targetGap) / 2);
+      introWordSci.style.transition = `left ${squishDuration}ms ${squishEasing}`;
+      introWordSci.style.left  = (sciRect.left + pullPerSide) + 'px';
+      introWordFi.style.transition = `right ${squishDuration}ms ${squishEasing}`;
+      introWordFi.style.right  = (window.innerWidth - fiRect.right + pullPerSide) + 'px';
+
+      _squishTimerId = setTimeout(() => {
+        _squishTimerId = null;
+        // Re-enable CSS transitions
+        introWordSci.style.transition = '';
+        introWordFi.style.transition = '';
+
+        // Switch Fi: right-anchored → left-anchored at current visual position
+        const rect = introWordFi.getBoundingClientRect();
+        introWordFi.style.transition = 'none';
+        introWordFi.style.right = 'auto';
+        introWordFi.style.left = rect.left + 'px';
+        introWordFi.offsetWidth; // force reflow
+        introWordFi.style.transition = '';
+
+        // Clear Sci's inline left so .p2 { left: 20px } transitions in
+        introWordSci.style.left = '';
+        introWordSci.classList.remove('expanded');
+        introWordFi.classList.remove('expanded');
+        introWordFi.style.left = (window.innerWidth - (window.innerWidth <= 640 ? 8 : 20) - introFiW) + 'px';
+        window.addEventListener('resize', onFiResize);
+      }, squishDuration);
+    }
+
+    // Intro logo sequence: 180 frames @ 60fps = 3.0s. Frame-by-frame playback
+    // (preloaded individual WebPs swapped on the visible <img>) avoids Safari's
+    // expensive per-frame decode of animated WebPs.
+    const INTRO_FRAME_COUNT = 180;
+    const INTRO_FRAME_MS    = 1000 / 60;
+    const introFrameSrc = (i) => `./intro-frames-webp/frame_${String(i).padStart(3, '0')}.webp`;
+    const introExitMs   = 2400;
+    const wordsLeadMs   = 200;   // start word entry this many ms before phase 2 (logo exit)
+
+    // ── Intro sequence ──
+    function runIntro() {
+      const intro   = document.getElementById('intro');
+      const wordSci = introWordSci = document.getElementById('intro-word-sci');
+      const wordFi  = introWordFi  = document.getElementById('intro-word-fi');
+
+      if (!intro) { introRunning = false; startObserving(); return; }
+
+      // Pre-measure "Fi" at its final 13px size (used post-p2 for resize updates).
+      const probe = document.createElement('span');
+      probe.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;font-family:inherit;font-size:13px;font-weight:500;white-space:nowrap;letter-spacing:-0.01em;';
+      probe.textContent = 'Fi';
+      document.body.appendChild(probe);
+      introFiW = probe.offsetWidth;
+      probe.remove();
+
+      const introCanvas = document.getElementById('intro-canvas');
+      // Match canvas bitmap to its CSS size × DPR for crisp rendering. CSS is
+      // 179×89; the source frames are 510×254 native @2x, so we'll draw scaled.
+      const introCanvasDpr = window.devicePixelRatio || 1;
+      const introCanvasW   = 179;
+      const introCanvasH   = 89;
+      introCanvas.width    = introCanvasW * introCanvasDpr;
+      introCanvas.height   = introCanvasH * introCanvasDpr;
+      const introCtx       = introCanvas.getContext('2d');
+      introCtx.scale(introCanvasDpr, introCanvasDpr);
+
+      // Phase 2 fires at 3.6s:
+      //   1. Canvas exits upward, overlay fades to white.
+      //   2. Words animate IN simultaneously with hue-stretch effect (desktop only).
+      //   3. After animation + pause, words collapse to Sci/Fi at edges.
+      //   4. Main slide text starts animating.
+      const animDuration = config.duration; // match slide text animation duration
+      const wordsAppearDelay = 200;         // ms — wait after word-entry trigger before keyframe starts
+      const wordStagger = 150;              // ms delay between Science and Fiction
+      const pauseAfterAnim = 500;           // ms to hold full-size words before collapse
+      const collapseAt = wordsAppearDelay + animDuration + wordStagger + pauseAfterAnim;
+
+      // Word entry — runs `wordsLeadMs` before phase 2 (logo exit). Sets tight positions,
+      // kicks off the hue-stretch keyframe, then schedules the come-together/spread chain.
+      function startWordEntry() {
+        // Tight start positions — words appear ~60px apart, then drift outward.
+        // Measure actual rendered widths so the gap is correct regardless of viewport
+        // (font-size uses clamp()).
+        const tightGapPx   = 60;
+        const sciW         = wordSci.getBoundingClientRect().width;
+        const fiW          = wordFi.getBoundingClientRect().width;
+        const tightEdgePx  = Math.max(0,
+          (window.innerWidth - sciW - fiW - tightGapPx) / 2);
+        // Desktop: words settle near the edges (200px). Mobile: spread fully
+        // off-screen so the dither eye is unobstructed.
+        const isMobile     = window.innerWidth <= 640;
+        const finalLeftSci = isMobile ? -(sciW + 20) : expandedEdgePx();
+        const finalRightFi = isMobile ? -(fiW + 20)  : expandedEdgePx();
+        const settleDelay  = wordsAppearDelay + animDuration + wordStagger + 350;
+        const closerDur    = 300;                      // ms — come together slightly
+        const closerOffset = 15;                       // px each side (30px total inward)
+        const spreadDur    = 500;                      // ms — then spread out to final
+        const spreadEasing = 'cubic-bezier(0.76, 0, 0.24, 1)'; // ease-in-out quart
+
+        // Set tight positions before the keyframe runs (no transition yet so the position
+        // jump is invisible).
+        wordSci.style.transition = 'none';
+        wordFi.style.transition  = 'none';
+        wordSci.style.left  = tightEdgePx + 'px';
+        wordFi.style.right  = tightEdgePx + 'px';
+        wordSci.offsetWidth; // force reflow
+
+        requestAnimationFrame(() => {
+          [wordSci, wordFi].forEach((w, i) => {
+            w.style.setProperty('--hue-color', config.hueColor);
+            w.style.setProperty('--hue-angle', config.hueAngle + 'deg');
+            w.style.setProperty('--stretch-amount', config.stretchAmount);
+            w.style.setProperty('--stretch-blur', config.stretchBlur + 'px');
+            w.style.animationDuration = animDuration + 'ms';
+            w.style.animationDelay = (wordsAppearDelay + i * wordStagger) + 'ms';
+            w.classList.add('intro-word-anim');
+          });
+        });
+
+        // After settleDelay: words pull together slightly, then spread to final edges.
+        setTimeout(() => {
+          wordSci.style.setProperty('transition',
+            `left ${closerDur}ms ${spreadEasing}`, 'important');
+          wordFi.style.setProperty('transition',
+            `right ${closerDur}ms ${spreadEasing}`, 'important');
+          wordSci.style.left  = (tightEdgePx + closerOffset) + 'px';
+          wordFi.style.right  = (tightEdgePx + closerOffset) + 'px';
+
+          setTimeout(() => {
+            wordSci.style.setProperty('transition',
+              `left ${spreadDur}ms ${spreadEasing}`, 'important');
+            wordFi.style.setProperty('transition',
+              `right ${spreadDur}ms ${spreadEasing}`, 'important');
+            wordSci.style.left  = finalLeftSci + 'px';
+            wordFi.style.right  = finalRightFi + 'px';
+          }, closerDur);
+        }, settleDelay);
+      }
+
+      function triggerPhase2() {
+        requestAnimationFrame(() => {
+          // Canvas exits, page background fades black→white via the existing
+          // html/body transition, dither starts.
+          document.getElementById('intro-logo-large').classList.add('exit');
+          intro.classList.add('p2');
+          document.body.classList.remove('intro-black');
+          ditherBg?.start();
+        });
+
+        // After animation ends: lock in visible state, then wait for user input to collapse.
+        // Scheduled from triggerPhase2; word entry already started `wordsLeadMs` earlier, so
+        // the keyframe-in completes (wordsAppearDelay + animDuration + wordStagger after
+        // word entry) at `... - wordsLeadMs` after triggerPhase2 fires.
+        const lockinDelay = wordsAppearDelay + animDuration + wordStagger - wordsLeadMs;
+        setTimeout(() => {
+            [wordSci, wordFi].forEach(w => {
+              w.style.opacity = '1';
+              w.style.filter = 'blur(0)';
+              w.style.color = 'var(--color-text)';
+              w.classList.remove('intro-word-anim');
+              w.style.animationDelay = '';
+            });
+
+            // Wait for click, scroll, or key press to collapse to Sci/Fi
+            function doCollapse(e) {
+              document.removeEventListener('click',      doCollapse);
+              document.removeEventListener('wheel',      doCollapse);
+              document.removeEventListener('touchend',   doCollapse);
+
+              ditherBg?.fadeOut(500);
+
+              // Mobile: words spread fully off-screen during settle. Skip the squish
+              // entirely — snap .p2 (small Sci/Fi state) and slide them in from the
+              // edges to their final 8px-from-edge resting position.
+              if (window.innerWidth <= 640) {
+                // Switch Fi to left-anchored at its current visual position so left
+                // transitions naturally to the on-screen target.
+                const fiRect = wordFi.getBoundingClientRect();
+                wordFi.style.transition = 'none';
+                wordFi.style.right = 'auto';
+                wordFi.style.left  = fiRect.left + 'px';
+                wordFi.offsetWidth; // reflow
+                wordFi.style.transition = '';
+
+                wordSci.classList.add('p2');
+                wordFi.classList.add('p2');
+                wordSci.style.color = '';
+                wordSci.style.left  = ''; // CSS `.p2 { left: 8px }` (mobile) takes over
+                wordFi.style.color  = '';
+                wordFi.style.left   = (window.innerWidth - 8 - introFiW) + 'px';
+                window.addEventListener('resize', onFiResize);
+
+                setTimeout(() => {
+                  document.body.classList.remove('intro-active');
+                  introRunning = false;
+                  startObserving();
+                  slides[1].scrollIntoView({ behavior: 'instant' });
+                }, 150);
+                setTimeout(() => intro.remove(), 800);
+                return;
+              }
+
+              const squishEasing   = 'cubic-bezier(0.77, 0, 0.175, 1)';
+              const squishDuration = 500;
+
+              // Step 1: pull words together. Target a 100px gap when there's room,
+              // but if the words are already closer than 100px, pull to 5px instead
+              // so the squish is still a visible motion on narrow viewports.
+              const sciRect = wordSci.getBoundingClientRect();
+              const fiRect  = wordFi.getBoundingClientRect();
+              const currentGap = fiRect.left - sciRect.right;
+              const targetGap  = currentGap > 200 ? 200 : 5;
+              const pullPerSide = Math.max(0, (currentGap - targetGap) / 2);
+              wordSci.style.transition = `left ${squishDuration}ms ${squishEasing}`;
+              wordFi.style.transition  = `right ${squishDuration}ms ${squishEasing}`;
+              wordSci.style.left  = (sciRect.left + pullPerSide) + 'px';
+              wordFi.style.right  = (window.innerWidth - fiRect.right + pullPerSide) + 'px';
+
+              // Step 2: after squish, collapse to Sci/Fi at edges
+              setTimeout(() => {
+                wordSci.style.transition = '';
+                wordFi.style.transition  = '';
+
+                // Switch wordFi to left-anchoring before .p2 collapses .intro-drop
+                const rect = wordFi.getBoundingClientRect();
+                wordFi.style.transition = 'none';
+                wordFi.style.right = 'auto';
+                wordFi.style.left = rect.left + 'px';
+                wordFi.offsetWidth; // force reflow
+                wordFi.style.transition = '';
+
+                // Clear inline color + left so CSS p2 rules take effect
+                wordSci.style.color = '';
+                wordSci.style.left  = '';
+                wordFi.style.color  = '';
+
+                wordSci.classList.add('p2');
+                wordFi.classList.add('p2');
+                wordFi.style.left = (window.innerWidth - (window.innerWidth <= 640 ? 8 : 20) - introFiW) + 'px';
+                window.addEventListener('resize', onFiResize);
+
+                setTimeout(() => {
+                  document.body.classList.remove('intro-active');
+                  introRunning = false;
+                  startObserving();
+                  // Skip slide 0 (dither bg with intro words) — land directly on slide 1
+                  slides[1].scrollIntoView({ behavior: 'instant' });
+                }, 150);
+
+                setTimeout(() => intro.remove(), 800);
+              }, squishDuration);
+            }
+
+            document.addEventListener('click',      doCollapse);
+            document.addEventListener('wheel',      doCollapse);
+            document.addEventListener('touchend',   doCollapse);
+          }, lockinDelay);
+      }
+
+      // Preload all frames in parallel. Once both they and the 300ms black-screen
+      // delay are done, start RAF-driven frame swap on the visible <img>.
+      // Lazy strategy: kick off all frame requests in parallel, but only wait for
+      // the first batch (~500ms of playback) before starting. Remaining frames
+      // stream in while the animation plays. If a frame isn't loaded by the time
+      // we reach it, we draw the most recent loaded frame instead of stalling.
+      const FRAME_PRIORITY_COUNT = 30; // ~500ms of 60fps playback
+      const frames = [];
+      let priorityLoaded = 0;
+      let preloaded = false;
+      let delayDone = false;
+      for (let i = 0; i < INTRO_FRAME_COUNT; i++) {
+        const img = new Image();
+        img.src = introFrameSrc(i);
+        if (i < FRAME_PRIORITY_COUNT) {
+          img.onload = img.onerror = () => {
+            if (++priorityLoaded === FRAME_PRIORITY_COUNT) {
+              preloaded = true;
+              maybePlay();
+            }
+          };
+        }
+        frames.push(img);
+      }
+      function maybePlay() {
+        if (!preloaded || !delayDone) return;
+        playFrames();
+        setTimeout(startWordEntry, introExitMs - wordsLeadMs);
+        setTimeout(triggerPhase2,   introExitMs);
+      }
+      function playFrames() {
+        const start = performance.now();
+        let lastIdx = -1;
+        let lastDrawnIdx = 0; // most recently DRAWN frame (for fallback if next frame isn't loaded yet)
+        const isLoaded = (i) => frames[i] && frames[i].complete && frames[i].naturalWidth > 0;
+        const drawFrame = (i) => {
+          // Frames have transparency — clear before drawing or they accumulate.
+          introCtx.clearRect(0, 0, introCanvasW, introCanvasH);
+          // Fall back to the last loaded frame if the requested one hasn't streamed in yet.
+          const drawIdx = isLoaded(i) ? i : lastDrawnIdx;
+          introCtx.drawImage(frames[drawIdx], 0, 0, introCanvasW, introCanvasH);
+          lastDrawnIdx = drawIdx;
+        };
+        drawFrame(0);
+        introCanvas.classList.add('ready');
+        const introSvg = document.getElementById('intro-logo-svg');
+        function tick(now) {
+          const idx = Math.min(Math.floor((now - start) / INTRO_FRAME_MS), INTRO_FRAME_COUNT - 1);
+          if (idx !== lastIdx) {
+            drawFrame(idx);
+            lastIdx = idx;
+          }
+          if (idx < INTRO_FRAME_COUNT - 1) {
+            requestAnimationFrame(tick);
+          } else {
+            // Sequence complete — swap the canvas for the static vector logo at
+            // the same dimensions so the persisting logo is sharp at any scale.
+            introCanvas.classList.add('done');
+            introSvg.classList.add('ready');
+          }
+        }
+        requestAnimationFrame(tick);
+      }
+      setTimeout(() => { delayDone = true; maybePlay(); }, 300);
+    }
+
+    // ── Dither background engine ──
+    let ditherBg = null;
+
+    runIntro();
+
+    function initDitherBg() {
+      const bgCanvas = document.getElementById('dither-bg');
+      const video = document.getElementById('dither-video-eye');
+      if (!bgCanvas || !video) return null;
+
+      const bgCtx      = bgCanvas.getContext('2d');
+      const offscreen  = document.createElement('canvas');
+      // willReadFrequently: true tells the browser we'll call getImageData often
+      // so it picks a CPU-side backing store instead of a GPU one (avoids slow
+      // GPU→CPU readbacks every frame).
+      const offCtx     = offscreen.getContext('2d', { willReadFrequently: true });
+      const offBlurred = document.createElement('canvas');
+      const offBlurCtx = offBlurred.getContext('2d', { willReadFrequently: true });
+
+      // Shape paths (from sci-fi-studio/shapes.js)
+      const SHAPE_VIEWBOX = 64;
+      const SHAPES = [
+        new Path2D("M37 0C37 6.08722 37.6501 10.9695 39.1162 14.8174C42.8741 13.1333 46.787 10.1417 51.0918 5.83691L58.1631 12.9082C53.8588 17.2125 50.8658 21.1243 49.1816 24.8818C53.0297 26.3483 57.912 27 64 27V37C57.9123 37 53.0296 37.6499 49.1816 39.1162C50.8657 42.8742 53.8582 46.7869 58.1631 51.0918L51.0918 58.1631C46.7867 53.858 42.8743 50.8647 39.1162 49.1807C37.6497 53.0288 37 57.9119 37 64H27C27 57.9122 26.3492 53.0297 24.8828 49.1816C21.1251 50.8658 17.2128 53.8585 12.9082 58.1631L5.83691 51.0918C10.1417 46.787 13.1333 42.8741 14.8174 39.1162C10.9695 37.6501 6.08722 37 0 37V27C6.08756 27 10.9694 26.3481 14.8174 24.8818C13.1332 21.1244 10.1411 17.2124 5.83691 12.9082L12.9082 5.83691C17.2124 10.1411 21.1244 13.1332 24.8818 14.8174C26.3481 10.9694 27 6.08756 27 0H37Z"),
+        new Path2D("M27 0H37C37 20 44 27 64 27V37C44 37 37 44 37 64H27C27 44 20 37 0 37V27C20 27 27 20 27 0Z"),
+        new Path2D("M0 37V27H64V37H0Z"),
+      ];
+
+      // Settings are read live from ditherConfig each frame
+
+      let mouseX = -9999, mouseY = -9999;
+      let rafId  = null;
+
+      // Track mouse in CSS-pixel space (matches the scaled drawing context below)
+      window.addEventListener('mousemove', e => {
+        const rect = bgCanvas.getBoundingClientRect();
+        mouseX = e.clientX - rect.left;
+        mouseY = e.clientY - rect.top;
+      });
+
+      // Throttle the dither render to ~30fps. The eye video is 24fps, so 60fps
+      // sampling wasted CPU on duplicate frames. 30fps still feels smooth for
+      // the cursor-proximity tracking while halving CPU usage.
+      const RENDER_INTERVAL_MS = 1000 / 30;
+      let lastRenderTime = 0;
+      function render(now) {
+        if (now && now - lastRenderTime < RENDER_INTERVAL_MS) {
+          rafId = requestAnimationFrame(render);
+          return;
+        }
+        lastRenderTime = now || 0;
+        if (!video.videoWidth || !video.videoHeight) {
+          rafId = requestAnimationFrame(render);
+          return;
+        }
+
+        const W = window.innerWidth;
+        const H = window.innerHeight;
+        const CELL = ditherConfig.cell;
+        const cols = Math.ceil(W / CELL);
+        const rows = Math.ceil(H / CELL);
+        const outW = cols * CELL;
+        const outH = rows * CELL;
+        // Oversample to device pixels so SVG shape edges rasterize crisply on retina
+        // displays. The video downsample stays at CELL resolution (that's the dither
+        // look), but the shape paths now render at full DPR.
+        const dpr = window.devicePixelRatio || 1;
+
+        if (bgCanvas.width !== outW * dpr || bgCanvas.height !== outH * dpr) {
+          bgCanvas.width  = outW * dpr;
+          bgCanvas.height = outH * dpr;
+          // CSS keeps the canvas at width: 100%; height: 100% (filling the viewport);
+          // the bitmap is just oversampled so shapes rasterize crisply.
+        }
+        // Reset + rescale so all subsequent drawing uses CSS pixel coordinates.
+        bgCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        // Downsample video → grid cells (cover fill)
+        offscreen.width  = cols;
+        offscreen.height = rows;
+        const vW = video.videoWidth, vH = video.videoHeight;
+        // Mobile: matches desktop default at 0.7× (eye sits inset from viewport).
+        const zoom = (window.innerWidth <= 640 ? 0.9 : (ditherConfig.zoom || 1));
+        const scale = Math.max(cols / vW, rows / vH) * zoom;
+        const dw = vW * scale, dh = vH * scale;
+        const dxOff = (cols - dw) / 2;
+        const dyOff = (rows - dh) / 2;
+        offCtx.drawImage(video, dxOff, dyOff, dw, dh);
+        // Track bounds in cell coords for clipping shapes outside the video.
+        // Inset by 1 cell to drop edge artifacts from the video frame border.
+        const inset = 1;
+        const vxStart = Math.max(0, Math.floor(dxOff) + inset);
+        const vxEnd   = Math.min(cols, Math.ceil(dxOff + dw) - inset);
+        const vyStart = Math.max(0, Math.floor(dyOff) + inset);
+        const vyEnd   = Math.min(rows, Math.ceil(dyOff + dh) - inset);
+        const pixels = offCtx.getImageData(0, 0, cols, rows).data;
+
+        // Blurred version for proximity effect
+        let blurredPixels = null;
+        if (ditherConfig.proximityEnabled && ditherConfig.mouseBlur > 0) {
+          offBlurred.width  = cols;
+          offBlurred.height = rows;
+          offBlurCtx.filter = `blur(${ditherConfig.mouseBlur}px)`;
+          offBlurCtx.drawImage(video, (cols - dw) / 2, (rows - dh) / 2, dw, dh);
+          offBlurCtx.filter = 'none';
+          blurredPixels = offBlurCtx.getImageData(0, 0, cols, rows).data;
+        }
+
+        bgCtx.clearRect(0, 0, outW, outH);
+
+        const sf = CELL / SHAPE_VIEWBOX;
+        let lastColor = '';
+
+        for (let y = 0; y < rows; y++) {
+          for (let x = 0; x < cols; x++) {
+            // Cells outside the video bounds: skip luminance sampling, but still allow the
+            // proximity off-cell effect to render bars around the cursor.
+            const outOfBounds = (x < vxStart || x >= vxEnd || y < vyStart || y >= vyEnd);
+            const i = (y * cols + x) * 4;
+            // Proximity
+            let prox = 0;
+            if (ditherConfig.proximityEnabled) {
+              const cx   = (x + 0.5) * CELL;
+              const cy   = (y + 0.5) * CELL;
+              const dist = Math.sqrt((cx - mouseX) ** 2 + (cy - mouseY) ** 2);
+              prox = Math.pow(Math.max(0, 1 - dist / ditherConfig.proximityRadius), 2);
+            }
+
+            // Out-of-bounds cells skip the proximity effect entirely if cursor is far away
+            if (outOfBounds && prox <= 0.005) continue;
+
+            // Luminance — blend normal and blurred source based on proximity
+            function adjustLum(p) {
+              let l = (0.299 * p[i] + 0.587 * p[i + 1] + 0.114 * p[i + 2]) / 255;
+              if (ditherConfig.invert) l = 1 - l;
+              l += ditherConfig.brightness;
+              l = ((l - 0.5) * ditherConfig.contrast) + 0.5;
+              if (l > 0) l = Math.pow(l, 1 / ditherConfig.gamma);
+              return l < 0 ? 0 : l > 1 ? 1 : l;
+            }
+            let lum;
+            if (outOfBounds) {
+              // Force off-cell branch so the proximity bar renders.
+              lum = -1;
+            } else {
+              lum = adjustLum(pixels);
+              if (blurredPixels && prox > 0) {
+                const blend = prox * ditherConfig.mouseBlurAmount;
+                lum = lum * (1 - blend) + adjustLum(blurredPixels) * blend;
+              }
+            }
+
+            let si;
+            if      (lum >= ditherConfig.t1) si = 0;
+            else if (lum >= ditherConfig.t2) si = 1;
+            else if (lum >= ditherConfig.t3) si = 2;
+            else {
+              // Off cell — leave empty (no proximity bar)
+              continue;
+            }
+
+            const shapeCol = ditherConfig.shapeColor;
+            if (shapeCol !== lastColor) { bgCtx.fillStyle = shapeCol; lastColor = shapeCol; }
+
+            // Bake DPR into the per-cell transform — without this, setTransform
+            // would override the outer dpr scale and shapes would only fill the
+            // top-left 1/dpr of the bitmap.
+            bgCtx.setTransform(sf * dpr, 0, 0, sf * dpr, x * CELL * dpr, y * CELL * dpr);
+            bgCtx.fill(SHAPES[si]);
+          }
+        }
+
+        bgCtx.setTransform(1, 0, 0, 1, 0, 0);
+        rafId = requestAnimationFrame(render);
+      }
+
+      let fadeOutTimer    = null;
+      let fadeOutPauseTimer = null;
+      let startTimer      = null;
+      let brightnessRAF   = null;
+      let mouseBlurRAF    = null;
+      let shapeColorRAF   = null;
+      let shapeRevealTimer = null;
+      let hasStartedOnce  = false;
+      const START_DELAY_FIRST           = 800;  // ms before brightness anim on first run (syncs with intro exit)
+      const START_DELAY_RETURN          = 0;    // ms before brightness anim when re-entering slide 0 (loop / scroll)
+      const BRIGHTNESS_DURATION_FIRST   = 2000; // ms to ramp brightness in on the cinematic first run
+      const BRIGHTNESS_DURATION_RETURN  = 600;  // ms to ramp on loop re-entry — faster so eye appears with the word expand
+      const BRIGHTNESS_FROM          = -1;     // start of cinematic first reveal
+      const BRIGHTNESS_FROM_RETURN   = -0.5;   // start of loop re-entry — shapes appear immediately
+      const BRIGHTNESS_TARGET        = 0;      // canonical brightness once revealed
+      const MOUSE_BLUR_AMOUNT_DEFAULT = 1.0; // canonical mouse blur amount once revealed
+      const MOUSE_BLUR_OUT_DURATION  = 300;  // ms to fade out proximity effect
+      const SHAPE_COLOR_FROM         = '#ff2bd6'; // vivid pink at reveal start
+      // Reveal target tracks the active theme — black on light, white on dark.
+      const shapeColorTo = () => document.documentElement.classList.contains('dark') ? '#ffffff' : '#000000';
+      // Pink→black + hue-rotate sweep — matches Hue Warp 2 easing (config.easing).
+      // Duration is longer than the warp 2 word effect (config.duration=360ms) because
+      // the dither shapes only become visible part-way through the brightness ramp;
+      // a delay lets the sweep start when shapes are actually emerging.
+      const SHAPE_REVEAL_DURATION_FIRST  = 1000; // ms on cinematic first reveal
+      const SHAPE_REVEAL_DURATION_RETURN = 600;  // ms on loop / scroll-up — matches BRIGHTNESS_DURATION_RETURN
+      const SHAPE_REVEAL_DELAY_FIRST     = 400;  // ms after brightness ramp begins
+      const SHAPE_REVEAL_DELAY_RETURN    = 0;    // shapes are already visible at fromBrightness, so no delay
+      const HUE_ROTATE_FROM          = -100;  // deg — matches --hue-angle on warp 2
+
+      function hexToRgb(hex) {
+        const h = hex.replace('#', '');
+        return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+      }
+      // Sample cubic-bezier(p1x, p1y, p2x, p2y) by Newton-iterating to find t given x,
+      // then returning y(t). Used for matching CSS bezier easings exactly.
+      function cubicBezierEasing(p1x, p1y, p2x, p2y) {
+        const ax = (t) => 3*(1-t)*(1-t)*t*p1x + 3*(1-t)*t*t*p2x + t*t*t;
+        const ay = (t) => 3*(1-t)*(1-t)*t*p1y + 3*(1-t)*t*t*p2y + t*t*t;
+        const dx = (t) => 3*(1-t)*(1-t)*p1x + 6*(1-t)*t*(p2x-p1x) + 3*t*t*(1-p2x);
+        return function (x) {
+          let t = x;
+          for (let i = 0; i < 8; i++) {
+            const xv = ax(t) - x;
+            if (Math.abs(xv) < 1e-6) break;
+            const d = dx(t);
+            if (Math.abs(d) < 1e-6) break;
+            t -= xv / d;
+          }
+          return ay(Math.max(0, Math.min(1, t)));
+        };
+      }
+      // Matches the Hue Warp 2 keyframe easing.
+      const hueWarpEasing = cubicBezierEasing(0.87, 0, 0.13, 1);
+
+      function tweenShapeColor(fromHex, toHex, duration) {
+        if (shapeColorRAF) cancelAnimationFrame(shapeColorRAF);
+        const [r0, g0, b0] = hexToRgb(fromHex);
+        const [r1, g1, b1] = hexToRgb(toHex);
+        const t0 = performance.now();
+        function step(now) {
+          const t = Math.min(1, (now - t0) / duration);
+          const eased = hueWarpEasing(t);
+          const r = Math.round(r0 + (r1 - r0) * eased);
+          const g = Math.round(g0 + (g1 - g0) * eased);
+          const b = Math.round(b0 + (b1 - b0) * eased);
+          ditherConfig.shapeColor = `rgb(${r},${g},${b})`;
+          if (t < 1) shapeColorRAF = requestAnimationFrame(step);
+          else        shapeColorRAF = null;
+        }
+        shapeColorRAF = requestAnimationFrame(step);
+      }
+
+      function tweenBrightness(from, to, duration) {
+        if (brightnessRAF) cancelAnimationFrame(brightnessRAF);
+        const t0 = performance.now();
+        function step(now) {
+          const t = Math.min(1, (now - t0) / duration);
+          const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
+          ditherConfig.brightness = from + (to - from) * eased;
+          if (t < 1) brightnessRAF = requestAnimationFrame(step);
+          else        brightnessRAF = null;
+        }
+        brightnessRAF = requestAnimationFrame(step);
+      }
+
+      function tweenMouseBlurAmount(from, to, duration) {
+        if (mouseBlurRAF) cancelAnimationFrame(mouseBlurRAF);
+        const t0 = performance.now();
+        function step(now) {
+          const t = Math.min(1, (now - t0) / duration);
+          const eased = 1 - Math.pow(1 - t, 3);
+          ditherConfig.mouseBlurAmount = from + (to - from) * eased;
+          if (t < 1) mouseBlurRAF = requestAnimationFrame(step);
+          else        mouseBlurRAF = null;
+        }
+        mouseBlurRAF = requestAnimationFrame(step);
+      }
+
+      return {
+        start() {
+          if (fadeOutTimer)      { clearTimeout(fadeOutTimer);      fadeOutTimer      = null; }
+          if (fadeOutPauseTimer) { clearTimeout(fadeOutPauseTimer); fadeOutPauseTimer = null; }
+          if (startTimer)        { clearTimeout(startTimer);        startTimer        = null; }
+          if (brightnessRAF)     { cancelAnimationFrame(brightnessRAF); brightnessRAF = null; }
+          if (mouseBlurRAF)      { cancelAnimationFrame(mouseBlurRAF);  mouseBlurRAF  = null; }
+          if (shapeColorRAF)     { cancelAnimationFrame(shapeColorRAF); shapeColorRAF = null; }
+          if (shapeRevealTimer)  { clearTimeout(shapeRevealTimer);      shapeRevealTimer = null; }
+
+          // Restore canonical brightness/mouseBlurAmount baselines (may have been
+          // tweened to 0 / -1 by the previous fadeOut).
+          ditherConfig.mouseBlurAmount = MOUSE_BLUR_AMOUNT_DEFAULT;
+          // First reveal starts from full black (-1) for cinematic effect; loop
+          // re-entry starts higher so shapes are visible immediately, syncing with
+          // the word expand animation.
+          const fromBrightness = hasStartedOnce ? BRIGHTNESS_FROM_RETURN : BRIGHTNESS_FROM;
+          ditherConfig.brightness = fromBrightness;
+          ditherConfig.shapeColor = SHAPE_COLOR_FROM;
+          bgCanvas.style.transition = 'none';
+          bgCanvas.style.opacity    = '1';
+          // Apply hue-rotate filter at the start angle; we'll transition to 0 alongside
+          // the pink→black tween (same speed/easing as Hue Warp 2 text effect).
+          bgCanvas.style.filter     = `hue-rotate(${HUE_ROTATE_FROM}deg)`;
+          // Restart the video from the beginning each time the eye re-animates in.
+          try { video.currentTime = 0; } catch (e) {}
+          video.play().catch(() => {});
+          if (!rafId) render();
+
+          const delay        = hasStartedOnce ? START_DELAY_RETURN          : START_DELAY_FIRST;
+          const rampDur      = hasStartedOnce ? BRIGHTNESS_DURATION_RETURN  : BRIGHTNESS_DURATION_FIRST;
+          const shapeDur     = hasStartedOnce ? SHAPE_REVEAL_DURATION_RETURN : SHAPE_REVEAL_DURATION_FIRST;
+          const shapeDelay   = hasStartedOnce ? SHAPE_REVEAL_DELAY_RETURN    : SHAPE_REVEAL_DELAY_FIRST;
+          hasStartedOnce = true;
+          const startTweens = () => {
+            tweenBrightness(fromBrightness, BRIGHTNESS_TARGET, rampDur);
+            // Pink→black + hue-rotate sweep — delayed (on first reveal) so it fires
+            // during the visible portion of the brightness ramp.
+            shapeRevealTimer = setTimeout(() => {
+              shapeRevealTimer = null;
+              tweenShapeColor(SHAPE_COLOR_FROM, shapeColorTo(), shapeDur);
+              bgCanvas.style.transition = `filter ${shapeDur}ms ${config.easing}`;
+              bgCanvas.style.filter     = 'hue-rotate(0deg)';
+            }, shapeDelay);
+          };
+          if (delay <= 0) {
+            startTweens();
+          } else {
+            startTimer = setTimeout(() => {
+              startTimer = null;
+              startTweens();
+            }, delay);
+          }
+        },
+        stop() {
+          if (startTimer)        { clearTimeout(startTimer);        startTimer        = null; }
+          if (fadeOutTimer)      { clearTimeout(fadeOutTimer);      fadeOutTimer      = null; }
+          if (fadeOutPauseTimer) { clearTimeout(fadeOutPauseTimer); fadeOutPauseTimer = null; }
+          if (brightnessRAF)     { cancelAnimationFrame(brightnessRAF); brightnessRAF = null; }
+          if (mouseBlurRAF)      { cancelAnimationFrame(mouseBlurRAF);  mouseBlurRAF  = null; }
+          if (shapeColorRAF)     { cancelAnimationFrame(shapeColorRAF); shapeColorRAF = null; }
+          if (shapeRevealTimer)  { clearTimeout(shapeRevealTimer);      shapeRevealTimer = null; }
+          if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+          video.pause();
+        },
+        fadeOut(duration) {
+          if (startTimer)        { clearTimeout(startTimer);        startTimer        = null; }
+          if (brightnessRAF)     { cancelAnimationFrame(brightnessRAF); brightnessRAF = null; }
+          if (fadeOutTimer)      { clearTimeout(fadeOutTimer);      fadeOutTimer      = null; }
+          if (fadeOutPauseTimer) { clearTimeout(fadeOutPauseTimer); fadeOutPauseTimer = null; }
+
+          const brightnessOutDuration = 1000;
+          const opacityOutDuration    = 200;
+          tweenBrightness(ditherConfig.brightness, BRIGHTNESS_FROM, brightnessOutDuration);
+          tweenMouseBlurAmount(ditherConfig.mouseBlurAmount, 0, MOUSE_BLUR_OUT_DURATION);
+
+          fadeOutTimer = setTimeout(() => {
+            fadeOutTimer = null;
+            bgCanvas.style.transition = `opacity ${opacityOutDuration}ms ease-in-out`;
+            bgCanvas.style.opacity = '0';
+            // Stash this timeout's handle so a fast re-entry can cancel it before it
+            // kills the render loop / pauses the video.
+            fadeOutPauseTimer = setTimeout(() => {
+              fadeOutPauseTimer = null;
+              if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+              video.pause();
+            }, opacityOutDuration);
+          }, brightnessOutDuration);
+        },
+      };
+    }
+
+    ditherBg = initDitherBg();
