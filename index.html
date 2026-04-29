@@ -1887,6 +1887,8 @@
           document.getElementById('intro-logo-large').classList.add('exit');
           intro.classList.add('p2');
           ditherBg?.start();
+          const themeMeta = document.querySelector('meta[name="theme-color"]');
+          if (themeMeta) themeMeta.setAttribute('content', '#ffffff');
         });
 
         // After animation ends: lock in visible state, then wait for user input to collapse.
