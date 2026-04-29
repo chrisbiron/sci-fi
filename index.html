@@ -710,6 +710,14 @@
     // ── Slide 0 scroll trigger — fires squish+collapse the moment user scrolls away ──
     let _slide0ScrollFn = null;
     let _slide0ScrollArmedAt = 0;
+    // When the user scrolls down from slide 0, collapseIntroWords fires the squish.
+    // Defer the next slide's animateIn so its timing matches the first-intro doCollapse
+    // path (which has 500ms squish + 150ms wait before slide 1 enters). Without this
+    // delay the slide-text animation would start mid-squish, way earlier than the
+    // first-intro version.
+    const COLLAPSE_TO_SLIDE_DELAY = 650;
+    let _collapseFiredAt = 0;
+    const _pendingAnimateInTimers = new Map();
     function attachSlide0ScrollTrigger() {
       detachSlide0ScrollTrigger();
       _slide0ScrollArmedAt = performance.now();
@@ -847,11 +855,27 @@
           const newIdx = slides.indexOf(slide);
           scrollDirection = newIdx >= currentSlide ? 1 : -1;
           currentSlide = newIdx;
-          if (textEl) animateIn(textEl);
-          const btn = slide.querySelector('.slide-btn');
-          if (btn) animateBtn(btn, textEl);
-          const press = slide.querySelector('.press-list');
-          if (press) animatePressList(press);
+          // For slides 1+, defer animateIn if we're still inside the post-collapse
+          // delay so the timing matches the first-intro doCollapse path.
+          const sinceCollapse = performance.now() - _collapseFiredAt;
+          const delayLeft = (slideIdx > 0)
+            ? Math.max(0, COLLAPSE_TO_SLIDE_DELAY - sinceCollapse)
+            : 0;
+          const fireAnimations = () => {
+            _pendingAnimateInTimers.delete(slide);
+            if (textEl) animateIn(textEl);
+            const btn = slide.querySelector('.slide-btn');
+            if (btn) animateBtn(btn, textEl);
+            const press = slide.querySelector('.press-list');
+            if (press) animatePressList(press);
+          };
+          if (delayLeft > 0) {
+            const prev = _pendingAnimateInTimers.get(slide);
+            if (prev) clearTimeout(prev);
+            _pendingAnimateInTimers.set(slide, setTimeout(fireAnimations, delayLeft));
+          } else {
+            fireAnimations();
+          }
           if (slideIdx === 0) {
             // Time-lock so a flickering IO (sentinel oscillation during a loop pass)
             // can't restart the dither ramp multiple times.
@@ -863,6 +887,9 @@
             attachSlide0ScrollTrigger();
           }
         } else if (entry.intersectionRatio < 0.1) {
+          // Cancel any pending deferred animateIn so it doesn't fire on a now-hidden slide.
+          const pending = _pendingAnimateInTimers.get(slide);
+          if (pending) { clearTimeout(pending); _pendingAnimateInTimers.delete(slide); }
           if (textEl) textEl.classList.remove('animating');
           const btn = slide.querySelector('.slide-btn');
           if (btn) { btn.classList.remove('animating'); btn.style.animationDelay = ''; btn.style.animationName = ''; btn.style.filter = ''; btn.style.transform = ''; btn.style.opacity = ''; }
@@ -949,6 +976,7 @@
     function collapseIntroWords() {
       if (!introWordSci || !introWordFi || !wordsExpanded) return;
       wordsExpanded = false;
+      _collapseFiredAt = performance.now();
 
       const squishEasing   = 'cubic-bezier(0.77, 0, 0.175, 1)';
       const squishDuration = 300;
@@ -1302,7 +1330,7 @@
         offscreen.height = rows;
         const vW = video.videoWidth, vH = video.videoHeight;
         // Mobile: matches desktop default at 0.7× (eye sits inset from viewport).
-        const zoom = (window.innerWidth <= 640 ? 0.7 : (ditherConfig.zoom || 1));
+        const zoom = (window.innerWidth <= 640 ? 0.3 : (ditherConfig.zoom || 1));
         const scale = Math.max(cols / vW, rows / vH) * zoom;
         const dw = vW * scale, dh = vH * scale;
         const dxOff = (cols - dw) / 2;
