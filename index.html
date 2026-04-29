@@ -715,7 +715,7 @@
     // path (which has 500ms squish + 150ms wait before slide 1 enters). Without this
     // delay the slide-text animation would start mid-squish, way earlier than the
     // first-intro version.
-    const COLLAPSE_TO_SLIDE_DELAY = 650;
+    const COLLAPSE_TO_SLIDE_DELAY = 500;
     let _collapseFiredAt = 0;
     const _pendingAnimateInTimers = new Map();
     function attachSlide0ScrollTrigger() {
