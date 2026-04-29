@@ -1049,14 +1049,7 @@
             el.style.transform      = '';
             el.style.opacity        = '';
           });
-          if (slideIdx === 0) {
-            // Leaving slide 0 — make sure the eye fades out and the words collapse,
-            // even if the scroll trigger never fired (e.g., within its 600ms grace
-            // period or on a fast swipe that skipped past the 10% threshold).
-            detachSlide0ScrollTrigger();
-            collapseIntroWords();
-            ditherBg?.fadeOut(400);
-          }
+          if (slideIdx === 0) detachSlide0ScrollTrigger();
         }
       });
     }, { root: slidesContainer, threshold: [0, 0.1, 0.6] });
