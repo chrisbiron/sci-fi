@@ -13,11 +13,12 @@ A marketing/company website for Science Fiction. Scroll-snap layout with word-by
 - `fonts/Rhymes Text Medium.woff2` / `.woff` — Rhymes Text Medium (local copies required; `local()` font loading doesn't work for this font)
 - `fonts/untitled-sans-regular.woff2` / `untitled-sans-medium.woff2` — Untitled Sans, embedded so visitors without it installed locally still see the correct typeface
 - `eye.mp4` — eye video, source for the dither background on slide 0
-- `intro.webp` — animated WebP for intro logo sequence (510×254 native @2x, 180 frames @ 60fps, 3.0s, ~2.9 MB). Re-encoded from PNG sequence in `intro-frames/` (gitignored).
+- `intro-frames-webp/` — 180 individual WebP frames (`frame_000.webp` … `frame_179.webp`) played as an image sequence on a `<canvas>` for the intro logo animation. Replaced an animated WebP (which decoded slowly on Safari).
+- `logo.svg` — vector logo that swaps in for the canvas after the intro frame sequence completes (sharp at any scale). In dark mode it's CSS-inverted to white.
 - `og.png` — 1200×630 social preview image (referenced by `og:image` and `twitter:image`)
 
 ## Local-only files (gitignored)
-- `intro-frames/` — source PNG frames for re-encoding `intro.webp`
+- `intro-frames/` — source PNG frames (used to re-encode the WebPs in `intro-frames-webp/` if you ever need to)
 - `eye2.mp4` — working/alternate eye video
 - `fonts/*.otf` — Untitled Sans source files (NOT licensed for web distribution; only the woff2s ship)
 
@@ -56,9 +57,9 @@ hueColor: 'color(display-p3 0.992 0.263 1)', hueAngle: 180
 Three permanent fixed elements (z-index 201, above the black `#intro` overlay at z-index 200):
 - `#intro-word-sci` — shows "Sci**ence**" in p1, collapses to "Sci" + moves left in p2
 - `#intro-word-fi`  — shows "Fi**ction**" in p1, collapses to "Fi" + moves right in p2
-- `#intro-logo-large` — `<img src="./intro.webp">` playing the animated WebP; exits upward + scales down at phase 2
+- `#intro-logo-large` — wrapper containing a `<canvas id="intro-canvas">` (frame-by-frame WebP playback) and a `<img id="intro-logo-svg" src="./logo.svg">` (hidden until the sequence completes). Exits upward + scales down at phase 2.
 
-**Sequence:** `intro.webp` is 510×254 native @2x (displayed at 179×89), 180 frames @ 60fps, 3.0s total, loop=1. Re-encode with: `cd intro-frames && img2webp -loop 1 -d 17 -lossy -q 80 -m 6 $(ls frame_*.png | sort) -o ../intro.webp`. Constants in JS: `introExitMs = 2400`, `wordsLeadMs = 200`.
+**Sequence:** 180 frames × ~15KB each, displayed at 179×89 CSS via canvas (oversampled by DPR for sharp edges). All frames preload in parallel, then a single RAF loop swaps which one is `drawImage`'d at 60fps. At the final frame, the canvas is hidden and `#intro-logo-svg` (logo.svg) takes over so the persisting logo is vector-sharp at any scale. Constants in JS: `INTRO_FRAME_COUNT = 180`, `INTRO_FRAME_MS = 1000/60`, `introExitMs = 2400`, `wordsLeadMs = 200`.
 
 **Flow:**
 1. Black screen (`#intro` overlay, `body.intro-active`)
@@ -85,7 +86,7 @@ Three permanent fixed elements (z-index 201, above the black `#intro` overlay at
 
 ## SEO / Social
 - `<meta name="description">`, `<link rel="canonical">`, full Open Graph tags, and Twitter `summary_large_image` in `<head>` (no `theme-color` — see Intro Animation section). They reference `https://chrisbiron.github.io/sci-fi/` and `og.png` (1200×630).
-- `<link rel="preload" as="image">` for `intro.webp` and `<link rel="preload" as="font">` for the woff2s.
+- `<link rel="preload" as="font">` for the woff2s. Intro frames preload via JS `new Image()` calls.
 
 ## Mobile
 - Side padding: 24px (desktop: 120px)
