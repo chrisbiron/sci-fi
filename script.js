@@ -106,6 +106,12 @@
     // ── Slide 0 scroll trigger — fires squish+collapse the moment user scrolls away ──
     let _slide0ScrollFn = null;
     let _slide0ScrollArmedAt = 0;
+    // Debounce timer for the fallback fadeOut when slide 0 leaves the viewport.
+    // We delay slightly so scroll-snap settling oscillation (ratio briefly
+    // dropping below 0.1 then rising back above 0.6 during a loop snap-back)
+    // doesn't interrupt the dither.start() reveal. If slide 0 re-enters before
+    // the timeout fires, we cancel it.
+    let _slide0LeaveTimer = null;
     // When the user scrolls down from slide 0, collapseIntroWords fires the squish.
     // Defer the next slide's animateIn so its timing matches the first-intro doCollapse
     // path (which has 500ms squish + 150ms wait before slide 1 enters). Without this
@@ -127,8 +133,11 @@
           // fade out the eye that just animated in.
           if (performance.now() - _slide0ScrollArmedAt < 600) return;
           const cur = slidesContainer.scrollTop;
-          // Require a meaningful scroll (>10% slide height) to avoid false triggers
-          if (cur > prevScrollTop && cur > window.innerHeight * 0.1) {
+          // Only fire once the user has committed to leaving slide 0 — past the
+          // scroll-snap midpoint (50%), snap will land on slide 1; before that,
+          // a release pulls them back to slide 0 and we don't want the eye to
+          // have been faded out / words collapsed for a non-commit.
+          if (cur > prevScrollTop && cur > window.innerHeight * 0.5) {
             detachSlide0ScrollTrigger();
             collapseIntroWords();
             ditherBg?.fadeOut(400);
@@ -295,6 +304,14 @@
           const newIdx = slides.indexOf(slide);
           scrollDirection = newIdx >= currentSlide ? 1 : -1;
           currentSlide = newIdx;
+          // Race fix: if a fast scroll lands on slide 1+ before the slide-0
+          // scroll trigger fires collapseIntroWords, the intro words are still
+          // .expanded. Fire the collapse here so the deferral below has an
+          // up-to-date _collapseFiredAt timestamp and slide-text doesn't animate
+          // in over the still-expanding "Science"/"Fiction" words.
+          if (slideIdx > 0 && wordsExpanded) {
+            collapseIntroWords();
+          }
           // For slides 1+, defer animateIn if we're still inside the post-collapse
           // delay so the timing matches the first-intro doCollapse path.
           const sinceCollapse = performance.now() - _collapseFiredAt;
@@ -317,6 +334,9 @@
             fireAnimations();
           }
           if (slideIdx === 0) {
+            // Cancel any pending fadeOut from a recent leave-reset — slide 0 is
+            // back in view (e.g., loop snap-back) so don't fade it out.
+            if (_slide0LeaveTimer) { clearTimeout(_slide0LeaveTimer); _slide0LeaveTimer = null; }
             // Time-lock so a flickering IO (sentinel oscillation during a loop pass)
             // can't restart the dither ramp multiple times.
             if (performance.now() >= _ditherStartLockedUntil) {
@@ -346,7 +366,21 @@
             el.style.transform      = '';
             el.style.opacity        = '';
           });
-          if (slideIdx === 0) detachSlide0ScrollTrigger();
+          if (slideIdx === 0) {
+            detachSlide0ScrollTrigger();
+            // Fallback fadeOut for fast/aggressive scrolls where the slide-0
+            // scroll trigger never fired (e.g., user blew past the 10% scroll
+            // threshold within the 600ms grace period). Debounced 250ms so
+            // scroll-snap settling oscillations during a loop snap-back can't
+            // fire it — the entry branch above cancels the timer if slide 0
+            // re-enters before it elapses.
+            if (_slide0LeaveTimer) clearTimeout(_slide0LeaveTimer);
+            _slide0LeaveTimer = setTimeout(() => {
+              _slide0LeaveTimer = null;
+              collapseIntroWords();
+              ditherBg?.fadeOut(400);
+            }, 250);
+          }
         }
       });
     }, { root: slidesContainer, threshold: [0, 0.1, 0.6] });
@@ -797,12 +831,9 @@
 
       const bgCtx      = bgCanvas.getContext('2d');
       const offscreen  = document.createElement('canvas');
-      // willReadFrequently: true tells the browser we'll call getImageData often
-      // so it picks a CPU-side backing store instead of a GPU one (avoids slow
-      // GPU→CPU readbacks every frame).
-      const offCtx     = offscreen.getContext('2d', { willReadFrequently: true });
+      const offCtx     = offscreen.getContext('2d');
       const offBlurred = document.createElement('canvas');
-      const offBlurCtx = offBlurred.getContext('2d', { willReadFrequently: true });
+      const offBlurCtx = offBlurred.getContext('2d');
 
       // Shape paths (from sci-fi-studio/shapes.js)
       const SHAPE_VIEWBOX = 64;
@@ -824,17 +855,7 @@
         mouseY = e.clientY - rect.top;
       });
 
-      // Throttle the dither render to ~30fps. The eye video is 24fps, so 60fps
-      // sampling wasted CPU on duplicate frames. 30fps still feels smooth for
-      // the cursor-proximity tracking while halving CPU usage.
-      const RENDER_INTERVAL_MS = 1000 / 30;
-      let lastRenderTime = 0;
-      function render(now) {
-        if (now && now - lastRenderTime < RENDER_INTERVAL_MS) {
-          rafId = requestAnimationFrame(render);
-          return;
-        }
-        lastRenderTime = now || 0;
+      function render() {
         if (!video.videoWidth || !video.videoHeight) {
           rafId = requestAnimationFrame(render);
           return;
