@@ -2,3 +2,6 @@
 intro-frames/
 eye2.mp4
 fonts/*.otf
+
+# Local-only Warp 2 text rendering tool
+tool.html
