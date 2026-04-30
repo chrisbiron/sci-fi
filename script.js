@@ -304,19 +304,16 @@
           const newIdx = slides.indexOf(slide);
           scrollDirection = newIdx >= currentSlide ? 1 : -1;
           currentSlide = newIdx;
-          // Race fix: if a fast scroll lands on slide 1+ before the slide-0
-          // scroll trigger fires collapseIntroWords, the intro words are still
-          // .expanded. Fire the collapse here so the deferral below has an
-          // up-to-date _collapseFiredAt timestamp and slide-text doesn't animate
-          // in over the still-expanding "Science"/"Fiction" words.
-          if (slideIdx > 0 && wordsExpanded) {
-            collapseIntroWords();
-          }
-          // For slides 1+, defer animateIn if we're still inside the post-collapse
-          // delay so the timing matches the first-intro doCollapse path.
+          // For slides 1+, defer animateIn so the slide-text doesn't animate
+          // over the still-collapsing "Science"/"Fiction" intro words. If
+          // collapseIntroWords has already fired (slide-0 scroll trigger),
+          // honor the elapsed time. If not (race during fast scroll), defer
+          // the full COLLAPSE_TO_SLIDE_DELAY — the trigger will fire shortly.
           const sinceCollapse = performance.now() - _collapseFiredAt;
           const delayLeft = (slideIdx > 0)
-            ? Math.max(0, COLLAPSE_TO_SLIDE_DELAY - sinceCollapse)
+            ? (wordsExpanded
+                ? COLLAPSE_TO_SLIDE_DELAY
+                : Math.max(0, COLLAPSE_TO_SLIDE_DELAY - sinceCollapse))
             : 0;
           const fireAnimations = () => {
             _pendingAnimateInTimers.delete(slide);
