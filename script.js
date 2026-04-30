@@ -37,7 +37,7 @@
       const raw = el.innerHTML
         .replace(/&amp;/g, '&')
         .replace(/&nbsp;/g, '\u00a0')
-        .replace(/®/g, '<sup>®</sup>')
+        .replace(/™/g, '<sup>™</sup>')
         .trim();
 
       const tokens = raw.split(/(?<= )/);

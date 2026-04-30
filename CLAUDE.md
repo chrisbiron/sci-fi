@@ -81,12 +81,12 @@ Three permanent fixed elements (z-index 201, above the black `#intro` overlay at
 - `.intro-word-anim` adds `will-change: transform, filter, opacity, color` for animation duration; class is removed on completion so the hint is transient.
 
 ## Typography
-- **"Science Fiction®"** (first two words of slide 0): Rhymes Text Medium, 500 — applied via `.slide[data-index="0"] .slide-text .word:nth-child(-n+2)`
+- **"Science Fiction™"** (first two words of slide 0): Rhymes Text Medium, 500 — applied via `.slide[data-index="0"] .slide-text .word:nth-child(-n+2)`
 - **All other text:** Untitled Sans Regular (400)
 - **Intro words:** Untitled Sans Medium (500)
 - Font size: 32px desktop / 28px mobile (≤640px)
 - Line height: 1.18, letter spacing: -0.01em
-- `®` is wrapped in `<sup>` by `buildWords()`; font preload `<link>` is required because opacity:0 words suppress browser font loading
+- `™` is wrapped in `<sup>` by `buildWords()`; font preload `<link>` is required because opacity:0 words suppress browser font loading
 
 ## SEO / Social
 - `<meta name="description">`, `<link rel="canonical">`, full Open Graph tags, and Twitter `summary_large_image` in `<head>` (no `theme-color` — see Intro Animation section). They reference `https://chrisbiron.github.io/sci-fi/` and `og.png` (1200×630).

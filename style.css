@@ -189,7 +189,7 @@
       opacity: 1;
     }
 
-    /* "Science Fiction®" — first two words of slide 1 */
+    /* "Science Fiction™" — first two words of slide 1 */
     /* per-word mode: .word is a direct child */
     .slide[data-index="1"] .slide-text > .word:nth-child(-n+2) {
       font-family: 'Rhymes Text', serif;
