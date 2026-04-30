@@ -3,7 +3,7 @@
 ## Project Overview
 A marketing/company website for Science Fiction. Scroll-snap layout with word-by-word text animation, preceded by a full-screen intro animation. Self-contained single HTML file, no build step.
 
-**Live site:** https://chrisbiron.github.io/sci-fi/
+**Live site:** https://sci-fi.com/
 **Repo:** https://github.com/chrisbiron/sci-fi (this directory)
 
 **Code archive:** the local `archive/dev-controls-and-effects` git branch holds the previous version with dev sidebar (effect/timing controls), dither panel UI, pause/replay buttons, butterfly source, and 5 alternative word effects (`blur`, `blur-up`, `blob`, `stretch-y`, `hue-stretch-y` Hue Warp 1). `git checkout archive/dev-controls-and-effects` to restore.
@@ -89,7 +89,7 @@ Three permanent fixed elements (z-index 201, above the black `#intro` overlay at
 - `™` is wrapped in `<sup>` by `buildWords()`; font preload `<link>` is required because opacity:0 words suppress browser font loading
 
 ## SEO / Social
-- `<meta name="description">`, `<link rel="canonical">`, full Open Graph tags, and Twitter `summary_large_image` in `<head>` (no `theme-color` — see Intro Animation section). They reference `https://chrisbiron.github.io/sci-fi/` and `og.png` (1200×630).
+- `<meta name="description">`, `<link rel="canonical">`, full Open Graph tags, and Twitter `summary_large_image` in `<head>` (no `theme-color` — see Intro Animation section). They reference `https://sci-fi.com/` and `og.png` (1200×630).
 - `<link rel="preload" as="font">` for the woff2s. Intro frames preload via JS `new Image()` calls.
 
 ## Mobile
