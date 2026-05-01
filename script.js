@@ -826,6 +826,22 @@
       const video = document.getElementById('dither-video-eye');
       if (!bgCanvas || !video) return null;
 
+      // iOS LPM hack: real playback only works after a user gesture. Listen
+      // once for the first interaction anywhere on the page and try play()
+      // again — flips the manual-seek fallback off if it succeeds.
+      const tryRealPlay = () => {
+        const p = video.play();
+        if (p) p.then(() => { _manualSeek = false; }).catch(() => {});
+      };
+      ['touchstart', 'click', 'keydown', 'wheel'].forEach(ev => {
+        document.addEventListener(ev, tryRealPlay, { once: true, passive: true });
+      });
+      // Also re-attempt when the page becomes visible (LPM users sometimes
+      // lock + unlock to reload — the visibilitychange fires on focus).
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) tryRealPlay();
+      });
+
       const bgCtx      = bgCanvas.getContext('2d');
       const offscreen  = document.createElement('canvas');
       const offCtx     = offscreen.getContext('2d');
@@ -844,6 +860,14 @@
 
       let mouseX = -9999, mouseY = -9999;
       let rafId  = null;
+      // iOS Low Power Mode hack: Safari blocks autoplay (even muted+playsinline)
+      // when LPM is on. We can still SEEK the video manually — and drawImage()
+      // grabs whatever frame the video is currently decoded to. So when play()
+      // fails, we step `currentTime` ourselves on every render frame and keep
+      // the eye animating. Set `_manualSeek` true to engage; `_manualSeekStart`
+      // is the wall-clock anchor for computing currentTime.
+      let _manualSeek = false;
+      let _manualSeekStart = 0;
 
       // Track mouse in CSS-pixel space (matches the scaled drawing context below)
       window.addEventListener('mousemove', e => {
@@ -853,7 +877,18 @@
       });
 
       function render() {
-        if (!video.videoWidth || !video.videoHeight) {
+        // LPM hack: if the video can't autoplay, step currentTime manually so
+        // drawImage(video) below still gets a fresh frame each tick.
+        if (_manualSeek && video.duration > 0) {
+          const elapsed = (performance.now() - _manualSeekStart) / 1000;
+          try { video.currentTime = elapsed % video.duration; } catch (e) {}
+        }
+        // Video isn't loaded enough to give us a real frame yet — clear the
+        // canvas so we don't render junk shapes derived from missing/black
+        // pixel data.
+        if (!video.videoWidth || !video.videoHeight || video.readyState < 2) {
+          bgCtx.setTransform(1, 0, 0, 1, 0, 0);
+          bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
           rafId = requestAnimationFrame(render);
           return;
         }
@@ -1103,7 +1138,28 @@
           bgCanvas.style.filter     = `hue-rotate(${HUE_ROTATE_FROM}deg)`;
           // Restart the video from the beginning each time the eye re-animates in.
           try { video.currentTime = 0; } catch (e) {}
-          video.play().catch(() => {});
+          _manualSeek = false;
+          // Force the browser to start loading the video — in iOS Low Power Mode
+          // even `preload="auto"` is sometimes ignored until something explicitly
+          // triggers it.
+          try { video.load(); } catch (e) {}
+          const playPromise = video.play();
+          if (playPromise) {
+            playPromise.catch(() => {
+              // play() rejected — almost certainly iOS Low Power Mode. Engage
+              // the manual-seek fallback so the eye still animates.
+              _manualSeek = true;
+              _manualSeekStart = performance.now();
+            });
+          }
+          // Belt-and-suspenders: some browsers don't reject the promise but the
+          // video stays paused. Re-check after a beat.
+          setTimeout(() => {
+            if (video.paused && !_manualSeek) {
+              _manualSeek = true;
+              _manualSeekStart = performance.now();
+            }
+          }, 200);
           if (!rafId) render();
 
           const delay        = hasStartedOnce ? START_DELAY_RETURN          : START_DELAY_FIRST;
